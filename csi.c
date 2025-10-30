@@ -422,6 +422,8 @@ decset_decrst(struct terminal *term, unsigned param, bool enable)
 
     case 1004:
         term->focus_events = enable;
+        if (enable)
+            term_to_slave(term, term->kbd_focus ? "\033[I" : "\033[O", 3);
         break;
 
     case 1005:

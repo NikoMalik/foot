@@ -70,6 +70,14 @@
 ## Unreleased
 ### Added
 ### Changed
+
+* When enabling _"focus mode"_ (private mode 1004), foot now sends a
+  focus event immediately, to inform the application what the current
+  state is ([#2202][2202]).
+
+[2202]: https://codeberg.org/dnkl/foot/issues/2202
+
+
 ### Deprecated
 ### Removed
 ### Fixed
