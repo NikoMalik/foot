@@ -73,6 +73,10 @@
 ### Deprecated
 ### Removed
 ### Fixed
+
+* Search mode: composing keys not ignored.
+
+
 ### Security
 ### Contributors
 
