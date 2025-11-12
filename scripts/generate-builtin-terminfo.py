@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import argparse
+import os
 import re
 import sys
 
@@ -185,6 +186,7 @@ def main():
     entry.add_capability(StringCapability('TN', target_entry_name))
     entry.add_capability(StringCapability('name', target_entry_name))
     entry.add_capability(IntCapability('RGB', 8))  # 8 bits per channel
+    entry.add_capability(StringCapability('query-os-name', os.uname().sysname))
 
     terminfo_parts = []
     for cap in sorted(entry.caps.values()):

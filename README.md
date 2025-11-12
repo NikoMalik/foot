@@ -641,6 +641,10 @@ All replies are in `tigetstr()` format. That is, given the same
 capability name, foot's reply is identical to what `tigetstr()` would
 have returned.
 
+In addition to queries for terminfo entries, the `query-os-name` query
+will be answered with a response of the form `uname=$(uname -s)`,
+where `$(uname -s)` is the name of the OS foot was compiled for.
+
 
 # Credits
 

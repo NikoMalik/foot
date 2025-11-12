@@ -76,8 +76,11 @@
   Wayland protocol ([#2212][2212]).
 * `[colors-dark]` section to `foot.ini`. Replaces `[colors]`.
 * `[colors-light]` section to `foot.ini`. Replaces `[colors2]`.
+* `XTGETTCAP`: added `query-os-name`, returning the OS foot is
+  compiled for (e.g. _'Linux'_) ([#2209][2209]).
 
 [2212]: https://codeberg.org/dnkl/foot/issues/2212
+[2209]: https://codeberg.org/dnkl/foot/issues/2209
 
 
 ### Changed
