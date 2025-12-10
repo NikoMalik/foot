@@ -3420,10 +3420,13 @@ report_mouse_click(struct terminal *term, int encoded_button, int row, int col,
                  encoded_button, col + 1, row + 1, release ? 'm' : 'M');
         break;
 
-    case MOUSE_SGR_PIXELS:
+    case MOUSE_SGR_PIXELS: {
+        const int bounded_col = max(col_pixels, 0);
+        const int bounded_row = max(row_pixels, 0);
         snprintf(response, sizeof(response), "\033[<%d;%d;%d%c",
-                 encoded_button, col_pixels + 1, row_pixels + 1, release ? 'm' : 'M');
+                 encoded_button, bounded_col + 1, bounded_row + 1, release ? 'm' : 'M');
         break;
+    }
 
     case MOUSE_URXVT:
         snprintf(response, sizeof(response), "\033[%d;%d;%dM",

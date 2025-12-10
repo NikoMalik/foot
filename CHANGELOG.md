@@ -85,8 +85,11 @@
   state is ([#2202][2202]).
 * Scrollback search is now case sensitive when the search string
   contains at least one upper case character.
+* Mouse tracking in SGR pixel mode no longer emits negative column/row
+  pixel values ([#2226][2226]).
 
 [2202]: https://codeberg.org/dnkl/foot/issues/2202
+[2226]: https://codeberg.org/dnkl/foot/issues/2226
 
 
 ### Deprecated
