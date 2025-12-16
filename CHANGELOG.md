@@ -101,6 +101,7 @@
   character in the last column.
 * Crash when reverse-scrolling (terminfo capability `rin`) such that
   the current viewport ends up outside the scrollback ([#2232][2232]).
+* Regression: visual glitches in rare circumstances.
 
 [2232]: https://codeberg.org/dnkl/foot/issues/2232
 

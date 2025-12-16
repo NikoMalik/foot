@@ -628,14 +628,14 @@ shm_get_buffer(struct buffer_chain *chain, int width, int height, bool with_alph
             else
 #endif
             {
-                if (cached == NULL)
+                if (cached == NULL) {
                     cached = buf;
-                else {
+                } else {
                     /* We have multiple buffers eligible for
                      * reuse. Pick the "youngest" one, and mark the
                      * other one for purging */
                     if (buf->public.age < cached->public.age) {
-                        //shm_unref(&cached->public);
+                        shm_unref(&cached->public);
                         cached = buf;
                     } else {
                         /*
@@ -646,8 +646,8 @@ shm_get_buffer(struct buffer_chain *chain, int width, int height, bool with_alph
                          * should be safe; "our" tll_foreach() already
                          * holds the next pointer.
                          */
-                        //if (buffer_unref_no_remove_from_chain(buf))
-                        //    tll_remove(chain->bufs, it);
+                        if (buffer_unref_no_remove_from_chain(buf))
+                            tll_remove(chain->bufs, it);
                     }
                 }
             }
