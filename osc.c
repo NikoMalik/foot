@@ -513,7 +513,7 @@ osc_uri(struct terminal *term, char *string)
          key_value = strtok_r(NULL, ":", &ctx))
     {
         const char *key = key_value;
-        char *operator = strchr(key_value, '=');
+        char *operator = (char *)strchr(key_value, '=');
 
         if (operator == NULL)
             continue;

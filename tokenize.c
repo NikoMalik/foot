@@ -45,7 +45,7 @@ tokenize_cmdline(const char *cmdline, char ***argv)
 
     size_t idx = 0;
     while (*p != '\0') {
-        char *end = strchr(search_start, delim);
+        char *end = (char *)strchr(search_start, delim);
         if (end == NULL) {
             if (delim != ' ') {
                 LOG_ERR("unterminated %s quote", delim == '"' ? "double" : "single");

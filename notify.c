@@ -114,7 +114,7 @@ consume_stdout(struct notification *notif, bool eof)
     while (left > 0) {
         line = data;
         size_t len = left;
-        char *eol = memchr(line, '\n', left);
+        char *eol = (char *)memchr(line, '\n', left);
 
         if (eol != NULL) {
             *eol = '\0';
