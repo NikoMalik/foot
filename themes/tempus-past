@@ -3,7 +3,10 @@
 # author: Protesilaos Stavrou (https://protesilaos.com)
 # description: Light theme inspired by old vaporwave concept art (WCAG AA compliant)
 
-[colors]
+[main]
+initial-color-theme=light
+
+[colors-light]
 #cursor = f3f2f4 53545b
 foreground = 53545b
 background = f3f2f4

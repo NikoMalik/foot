@@ -2,7 +2,7 @@
 # JetBrains Darcula
 # Palette based on the same theme from https://github.com/dexpota/kitty-themes
 
-[colors]
+[colors-dark]
 cursor=202020 ffffff
 background=202020
 foreground=adadad

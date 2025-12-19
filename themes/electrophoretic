@@ -5,7 +5,10 @@
 # text and the white background.
 # author: Eugen Rahaian <eugen@rah.ro>
 
-[colors]
+[main]
+initial-color-theme=light
+
+[colors-light]
 cursor=ffffff 515151
 background= ffffff
 foreground= 000000

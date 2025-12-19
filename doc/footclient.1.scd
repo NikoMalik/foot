@@ -198,8 +198,8 @@ variables to unset may be defined in *foot.ini*(5).
 
 The following signals have special meaning in footclient:
 
-- SIGUSR1: switch to color theme 1 (i.e. use the *[colors]* section).
-- SIGUSR2: switch to color theme 2 (i.e. use the *[colors2]* section).
+- SIGUSR1: switch to the dark color theme (*[colors-dark]*).
+- SIGUSR2: switch to the light color theme (*[colors-light]*).
 
 When sending SIGUSR1/SIGUSR2 to a footclient instance, the theme is
 changed in that instance only. This is different from when you send

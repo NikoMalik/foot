@@ -3,7 +3,10 @@
 # author: Protesilaos Stavrou (https://protesilaos.com)
 # description: Light, pleasant theme optimised for long writing/coding sessions (WCAG AA compliant)
 
-[colors]
+[main]
+initial-color-theme=light
+
+[colors-light]
 #cursor = fff5f3 4d595f
 foreground = 4d595f
 background = fff5f3

@@ -13,7 +13,7 @@
 # and also posted here:
 # https://forums.debian.net/viewtopic.php?t=29981
 
-[colors]
+[colors-dark]
 foreground = cccccc
 background = 191911
 

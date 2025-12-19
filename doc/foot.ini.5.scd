@@ -24,7 +24,7 @@ commented out will usually be installed to */etc/xdg/foot/foot.ini*.
 
 Options are set using KEY=VALUE pairs:
 
-	*\[colors\]*++
+	*\[colors-dark\]*++
 *background=000000*++
 *foreground=ffffff*
 
@@ -371,12 +371,12 @@ empty string to be set, but it must be quoted: *KEY=""*)
 	Default: _yes_
 
 *initial-color-theme*
-	Selects which color theme to use, *1*, or *2*.
+	Selects which color theme to use, *dark*, or *light*.
 	
-	*1* uses the colors defined in the *colors* section, while *2*
-	uses the colors from the *colors2* section.
+	*dark* uses the colors defined in the *colors-dark* section, while
+	*light* uses the colors from the *colors-light* section.
 	
-	Use the *color-theme-switch-1*, *color-theme-switch-2* and
+	Use the *color-theme-switch-dark*, *color-theme-switch-light* and
 	*color-theme-toggle* key bindings to switch between the two themes
 	at runtime, or send SIGUSR1/SIGUSR2 to the foot process (see
 	*foot*(1) for details).
@@ -987,19 +987,24 @@ applications can change these at runtime.
 
 	Default: _400_.
 
-# SECTION: colors
+# SECTION: colors-dark, colors-light
 
-This section controls the 16 ANSI colors, the default foreground and
-background colors, and the extended 256 color palette. Note that
+These two sections controls the 16 ANSI colors, the default foreground
+and background colors, and the extended 256 color palette. Note that
 applications can change these at runtime.
 
 The colors are in RRGGBB format (i.e. plain old 6-digit hex values,
 without prefix). That is, they do *not* have an alpha component. You
 can configure the background transparency with the _alpha_ option.
 
-In the context of private mode 2031 (Dark and Light Mode detection),
-the primary theme (i.e. the *colors* section) is considered to be the
-dark theme (since the default theme is dark).
+*colors-dark* is intended to define a dark color theme, and
+*colors-light* is intended to define a light color theme. You can
+switch between them using the *color-theme-switch-dark*,
+*color-theme-switch-light* and *color-theme-toggle* key bindings, or
+by sending SIGUSR1/SIGUSR2 to the foot process.
+
+The default theme used is *colors-dark*, unless
+*initial-color-theme=light* has been set.
 
 *cursor*
 	Two space separated RRGGBB values (i.e. plain old 6-digit hex
@@ -1098,7 +1103,7 @@ dark theme (since the default theme is dark).
 	black makes the text darker, while blending towards white makes it
 	whiter (but still dimmer than normal text).
 	
-	Default: _black_ (*colors*), _white_ (*colors2*)
+	Default: _black_ (*colors-dark*), _white_ (*colors-light*)
 
 *selection-foreground*, *selection-background*
 	Foreground (text) and background color to use in selected
@@ -1134,20 +1139,6 @@ dark theme (since the default theme is dark).
 *flash-alpha*
 	Flash translucency. A value in the range 0.0-1.0, where 0.0 means
 	completely transparent, and 1.0 is opaque. Default: _0.5_.
-
-# SECTION: colors2
-
-This section defines an alternative color theme. It has the exact same
-keys as the *colors* section. The default values are the same, except
-for *dim-blend-towards*, which defaults to *white* instead.
-
-Note that values are not inherited. That is, if you set a value in
-*colors*, but not in *colors2*, the value from *colors* is not
-inherited by *colors2*.
-
-In the context of private mode 2031 (Dark and Light Mode detection),
-the alternative theme (i.e. the *colors2* section) is considered to be
-the light theme (since the default, the primary theme, is dark).
 
 # SECTION: csd
 
@@ -1455,16 +1446,16 @@ e.g. *search-start=none*.
 	
 	Default: _Control+Shift+u_.
 
-*color-theme-switch-1*, *color-theme-switch-2*, *color-theme-toggle*
-	Switch between the primary color theme (defined in the *colors*
-	section), and the alternative color theme (defined in the
-	*colors2* section).
+*color-theme-switch-dark*, *color-theme-switch-dark*, *color-theme-toggle*
+	Switch between the dark color theme (defined in the *colors-dark*
+	section), and the light color theme (defined in the *colors-light*
+	section).
 	
-	*color-theme-switch-1* applies the primary color theme regardless
+	*color-theme-switch-dark* applies the dark color theme regardless
 	of which color theme is currently active.
 	
-	*color-theme-switch-2* applies the alternative color theme regardless
-	of which color theme is currently active.
+	*color-theme-switch-light* applies the light color theme
+	regardless of which color theme is currently active.
 	
 	*color-theme-toggle* toggles between the primary and alternative
 	color themes.

@@ -1,7 +1,7 @@
 # OneDark
 # Palette based on the same theme from https://github.com/dexpota/kitty-themes
 
-[colors]
+[colors-dark]
 cursor=111111 cccccc
 foreground=979eab
 background=282c34

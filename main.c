@@ -59,14 +59,14 @@ fdm_sigusr(struct fdm *fdm, int signo, void *data)
 
     if (ctx->server != NULL) {
         if (signo == SIGUSR1)
-            server_global_theme_switch_to_1(ctx->server);
+            server_global_theme_switch_to_dark(ctx->server);
         else
-            server_global_theme_switch_to_2(ctx->server);
+            server_global_theme_switch_to_light(ctx->server);
     } else {
         if (signo == SIGUSR1)
-            term_theme_switch_to_1(ctx->term);
+            term_theme_switch_to_dark(ctx->term);
         else
-            term_theme_switch_to_2(ctx->term);
+            term_theme_switch_to_light(ctx->term);
     }
 
     return true;

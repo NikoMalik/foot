@@ -1,7 +1,7 @@
 # -*- conf -*-
 # The default palette of xterm.
 
-[colors]
+[colors-dark]
 foreground=e5e5e5
 background=000000
 regular0=000000 # black

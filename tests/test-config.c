@@ -521,6 +521,14 @@ test_section_main(void)
         (int []){STARTUP_WINDOWED, STARTUP_MAXIMIZED, STARTUP_FULLSCREEN},
         (int *)&conf.startup_mode);
 
+    test_enum(
+        &ctx, &parse_section_main, "initial-color-theme",
+        2,
+        (const char *[]){"dark", "light", "1", "2"},
+        (int []){COLOR_THEME_DARK, COLOR_THEME_LIGHT,
+                 COLOR_THEME_DARK, COLOR_THEME_LIGHT},
+        (int *)&conf.initial_color_theme);
+
     /* TODO: font (custom) */
     /* TODO: include (custom) */
     /* TODO: bold-text-in-bright (enum/boolean) */
@@ -695,78 +703,157 @@ test_section_touch(void)
 }
 
 static void
-test_section_colors(void)
+test_section_colors_dark(void)
 {
     struct config conf = {0};
     struct context ctx = {
-        .conf = &conf, .section = "colors", .path = "unittest"};
+        .conf = &conf, .section = "colors-dark", .path = "unittest"};
 
     test_invalid_key(&ctx, &parse_section_colors, "invalid-key");
 
-    test_color(&ctx, &parse_section_colors, "foreground", false, &conf.colors.fg);
-    test_color(&ctx, &parse_section_colors, "background", false, &conf.colors.bg);
-    test_color(&ctx, &parse_section_colors, "regular0", false, &conf.colors.table[0]);
-    test_color(&ctx, &parse_section_colors, "regular1", false, &conf.colors.table[1]);
-    test_color(&ctx, &parse_section_colors, "regular2", false, &conf.colors.table[2]);
-    test_color(&ctx, &parse_section_colors, "regular3", false, &conf.colors.table[3]);
-    test_color(&ctx, &parse_section_colors, "regular4", false, &conf.colors.table[4]);
-    test_color(&ctx, &parse_section_colors, "regular5", false, &conf.colors.table[5]);
-    test_color(&ctx, &parse_section_colors, "regular6", false, &conf.colors.table[6]);
-    test_color(&ctx, &parse_section_colors, "regular7", false, &conf.colors.table[7]);
-    test_color(&ctx, &parse_section_colors, "bright0", false, &conf.colors.table[8]);
-    test_color(&ctx, &parse_section_colors, "bright1", false, &conf.colors.table[9]);
-    test_color(&ctx, &parse_section_colors, "bright2", false, &conf.colors.table[10]);
-    test_color(&ctx, &parse_section_colors, "bright3", false, &conf.colors.table[11]);
-    test_color(&ctx, &parse_section_colors, "bright4", false, &conf.colors.table[12]);
-    test_color(&ctx, &parse_section_colors, "bright5", false, &conf.colors.table[13]);
-    test_color(&ctx, &parse_section_colors, "bright6", false, &conf.colors.table[14]);
-    test_color(&ctx, &parse_section_colors, "bright7", false, &conf.colors.table[15]);
-    test_color(&ctx, &parse_section_colors, "dim0", false, &conf.colors.dim[0]);
-    test_color(&ctx, &parse_section_colors, "dim1", false, &conf.colors.dim[1]);
-    test_color(&ctx, &parse_section_colors, "dim2", false, &conf.colors.dim[2]);
-    test_color(&ctx, &parse_section_colors, "dim3", false, &conf.colors.dim[3]);
-    test_color(&ctx, &parse_section_colors, "dim4", false, &conf.colors.dim[4]);
-    test_color(&ctx, &parse_section_colors, "dim5", false, &conf.colors.dim[5]);
-    test_color(&ctx, &parse_section_colors, "dim6", false, &conf.colors.dim[6]);
-    test_color(&ctx, &parse_section_colors, "dim7", false, &conf.colors.dim[7]);
-    test_color(&ctx, &parse_section_colors, "selection-foreground", false, &conf.colors.selection_fg);
-    test_color(&ctx, &parse_section_colors, "selection-background", false, &conf.colors.selection_bg);
-    test_color(&ctx, &parse_section_colors, "urls", false, &conf.colors.url);
-    test_two_colors(&ctx, &parse_section_colors, "jump-labels", false,
-                    &conf.colors.jump_label.fg,
-                    &conf.colors.jump_label.bg);
-    test_two_colors(&ctx, &parse_section_colors, "scrollback-indicator", false,
-                    &conf.colors.scrollback_indicator.fg,
-                    &conf.colors.scrollback_indicator.bg);
-    test_two_colors(&ctx, &parse_section_colors, "search-box-no-match", false,
-                    &conf.colors.search_box.no_match.fg,
-                    &conf.colors.search_box.no_match.bg);
-    test_two_colors(&ctx, &parse_section_colors, "search-box-match", false,
-                    &conf.colors.search_box.match.fg,
-                    &conf.colors.search_box.match.bg);
+    test_color(&ctx, &parse_section_colors_dark, "foreground", false, &conf.colors_dark.fg);
+    test_color(&ctx, &parse_section_colors_dark, "background", false, &conf.colors_dark.bg);
+    test_color(&ctx, &parse_section_colors_dark, "regular0", false, &conf.colors_dark.table[0]);
+    test_color(&ctx, &parse_section_colors_dark, "regular1", false, &conf.colors_dark.table[1]);
+    test_color(&ctx, &parse_section_colors_dark, "regular2", false, &conf.colors_dark.table[2]);
+    test_color(&ctx, &parse_section_colors_dark, "regular3", false, &conf.colors_dark.table[3]);
+    test_color(&ctx, &parse_section_colors_dark, "regular4", false, &conf.colors_dark.table[4]);
+    test_color(&ctx, &parse_section_colors_dark, "regular5", false, &conf.colors_dark.table[5]);
+    test_color(&ctx, &parse_section_colors_dark, "regular6", false, &conf.colors_dark.table[6]);
+    test_color(&ctx, &parse_section_colors_dark, "regular7", false, &conf.colors_dark.table[7]);
+    test_color(&ctx, &parse_section_colors_dark, "bright0", false, &conf.colors_dark.table[8]);
+    test_color(&ctx, &parse_section_colors_dark, "bright1", false, &conf.colors_dark.table[9]);
+    test_color(&ctx, &parse_section_colors_dark, "bright2", false, &conf.colors_dark.table[10]);
+    test_color(&ctx, &parse_section_colors_dark, "bright3", false, &conf.colors_dark.table[11]);
+    test_color(&ctx, &parse_section_colors_dark, "bright4", false, &conf.colors_dark.table[12]);
+    test_color(&ctx, &parse_section_colors_dark, "bright5", false, &conf.colors_dark.table[13]);
+    test_color(&ctx, &parse_section_colors_dark, "bright6", false, &conf.colors_dark.table[14]);
+    test_color(&ctx, &parse_section_colors_dark, "bright7", false, &conf.colors_dark.table[15]);
+    test_color(&ctx, &parse_section_colors_dark, "dim0", false, &conf.colors_dark.dim[0]);
+    test_color(&ctx, &parse_section_colors_dark, "dim1", false, &conf.colors_dark.dim[1]);
+    test_color(&ctx, &parse_section_colors_dark, "dim2", false, &conf.colors_dark.dim[2]);
+    test_color(&ctx, &parse_section_colors_dark, "dim3", false, &conf.colors_dark.dim[3]);
+    test_color(&ctx, &parse_section_colors_dark, "dim4", false, &conf.colors_dark.dim[4]);
+    test_color(&ctx, &parse_section_colors_dark, "dim5", false, &conf.colors_dark.dim[5]);
+    test_color(&ctx, &parse_section_colors_dark, "dim6", false, &conf.colors_dark.dim[6]);
+    test_color(&ctx, &parse_section_colors_dark, "dim7", false, &conf.colors_dark.dim[7]);
+    test_color(&ctx, &parse_section_colors_dark, "selection-foreground", false, &conf.colors_dark.selection_fg);
+    test_color(&ctx, &parse_section_colors_dark, "selection-background", false, &conf.colors_dark.selection_bg);
+    test_color(&ctx, &parse_section_colors_dark, "urls", false, &conf.colors_dark.url);
+    test_two_colors(&ctx, &parse_section_colors_dark, "jump-labels", false,
+                    &conf.colors_dark.jump_label.fg,
+                    &conf.colors_dark.jump_label.bg);
+    test_two_colors(&ctx, &parse_section_colors_dark, "scrollback-indicator", false,
+                    &conf.colors_dark.scrollback_indicator.fg,
+                    &conf.colors_dark.scrollback_indicator.bg);
+    test_two_colors(&ctx, &parse_section_colors_dark, "search-box-no-match", false,
+                    &conf.colors_dark.search_box.no_match.fg,
+                    &conf.colors_dark.search_box.no_match.bg);
+    test_two_colors(&ctx, &parse_section_colors_dark, "search-box-match", false,
+                    &conf.colors_dark.search_box.match.fg,
+                    &conf.colors_dark.search_box.match.bg);
 
-    test_two_colors(&ctx, &parse_section_colors, "cursor", false,
-                    &conf.colors.cursor.text,
-                    &conf.colors.cursor.cursor);
+    test_two_colors(&ctx, &parse_section_colors_dark, "cursor", false,
+                    &conf.colors_dark.cursor.text,
+                    &conf.colors_dark.cursor.cursor);
 
-    test_enum(&ctx, &parse_section_colors, "alpha-mode", 3,
+    test_enum(&ctx, &parse_section_colors_dark, "alpha-mode", 3,
               (const char *[]){"default", "matching", "all"},
               (int []){ALPHA_MODE_DEFAULT, ALPHA_MODE_MATCHING, ALPHA_MODE_ALL},
-              (int *)&conf.colors.alpha_mode);
+              (int *)&conf.colors_dark.alpha_mode);
 
-    test_enum(&ctx, &parse_section_colors, "dim-blend-towards", 2,
+    test_enum(&ctx, &parse_section_colors_dark, "dim-blend-towards", 2,
               (const char *[]){"black", "white"},
               (int []){DIM_BLEND_TOWARDS_BLACK, DIM_BLEND_TOWARDS_WHITE},
-              (int *)&conf.colors.dim_blend_towards);
+              (int *)&conf.colors_dark.dim_blend_towards);
 
     for (size_t i = 0; i < 255; i++) {
         char key_name[4];
         sprintf(key_name, "%zu", i);
-        test_color(&ctx, &parse_section_colors, key_name, false,
-                   &conf.colors.table[i]);
+        test_color(&ctx, &parse_section_colors_dark, key_name, false,
+                   &conf.colors_dark.table[i]);
     }
 
-    test_invalid_key(&ctx, &parse_section_colors, "256");
+    test_invalid_key(&ctx, &parse_section_colors_dark, "256");
+
+    /* TODO: alpha (float in range 0-1, converted to uint16_t) */
+
+    config_free(&conf);
+}
+
+static void
+test_section_colors_light(void)
+{
+    struct config conf = {0};
+    struct context ctx = {
+        .conf = &conf, .section = "colors-light", .path = "unittest"};
+
+    test_invalid_key(&ctx, &parse_section_colors, "invalid-key");
+
+    test_color(&ctx, &parse_section_colors_light, "foreground", false, &conf.colors_light.fg);
+    test_color(&ctx, &parse_section_colors_light, "background", false, &conf.colors_light.bg);
+    test_color(&ctx, &parse_section_colors_light, "regular0", false, &conf.colors_light.table[0]);
+    test_color(&ctx, &parse_section_colors_light, "regular1", false, &conf.colors_light.table[1]);
+    test_color(&ctx, &parse_section_colors_light, "regular2", false, &conf.colors_light.table[2]);
+    test_color(&ctx, &parse_section_colors_light, "regular3", false, &conf.colors_light.table[3]);
+    test_color(&ctx, &parse_section_colors_light, "regular4", false, &conf.colors_light.table[4]);
+    test_color(&ctx, &parse_section_colors_light, "regular5", false, &conf.colors_light.table[5]);
+    test_color(&ctx, &parse_section_colors_light, "regular6", false, &conf.colors_light.table[6]);
+    test_color(&ctx, &parse_section_colors_light, "regular7", false, &conf.colors_light.table[7]);
+    test_color(&ctx, &parse_section_colors_light, "bright0", false, &conf.colors_light.table[8]);
+    test_color(&ctx, &parse_section_colors_light, "bright1", false, &conf.colors_light.table[9]);
+    test_color(&ctx, &parse_section_colors_light, "bright2", false, &conf.colors_light.table[10]);
+    test_color(&ctx, &parse_section_colors_light, "bright3", false, &conf.colors_light.table[11]);
+    test_color(&ctx, &parse_section_colors_light, "bright4", false, &conf.colors_light.table[12]);
+    test_color(&ctx, &parse_section_colors_light, "bright5", false, &conf.colors_light.table[13]);
+    test_color(&ctx, &parse_section_colors_light, "bright6", false, &conf.colors_light.table[14]);
+    test_color(&ctx, &parse_section_colors_light, "bright7", false, &conf.colors_light.table[15]);
+    test_color(&ctx, &parse_section_colors_light, "dim0", false, &conf.colors_light.dim[0]);
+    test_color(&ctx, &parse_section_colors_light, "dim1", false, &conf.colors_light.dim[1]);
+    test_color(&ctx, &parse_section_colors_light, "dim2", false, &conf.colors_light.dim[2]);
+    test_color(&ctx, &parse_section_colors_light, "dim3", false, &conf.colors_light.dim[3]);
+    test_color(&ctx, &parse_section_colors_light, "dim4", false, &conf.colors_light.dim[4]);
+    test_color(&ctx, &parse_section_colors_light, "dim5", false, &conf.colors_light.dim[5]);
+    test_color(&ctx, &parse_section_colors_light, "dim6", false, &conf.colors_light.dim[6]);
+    test_color(&ctx, &parse_section_colors_light, "dim7", false, &conf.colors_light.dim[7]);
+    test_color(&ctx, &parse_section_colors_light, "selection-foreground", false, &conf.colors_light.selection_fg);
+    test_color(&ctx, &parse_section_colors_light, "selection-background", false, &conf.colors_light.selection_bg);
+    test_color(&ctx, &parse_section_colors_light, "urls", false, &conf.colors_light.url);
+    test_two_colors(&ctx, &parse_section_colors_light, "jump-labels", false,
+                    &conf.colors_light.jump_label.fg,
+                    &conf.colors_light.jump_label.bg);
+    test_two_colors(&ctx, &parse_section_colors_light, "scrollback-indicator", false,
+                    &conf.colors_light.scrollback_indicator.fg,
+                    &conf.colors_light.scrollback_indicator.bg);
+    test_two_colors(&ctx, &parse_section_colors_light, "search-box-no-match", false,
+                    &conf.colors_light.search_box.no_match.fg,
+                    &conf.colors_light.search_box.no_match.bg);
+    test_two_colors(&ctx, &parse_section_colors_light, "search-box-match", false,
+                    &conf.colors_light.search_box.match.fg,
+                    &conf.colors_light.search_box.match.bg);
+
+    test_two_colors(&ctx, &parse_section_colors_light, "cursor", false,
+                    &conf.colors_light.cursor.text,
+                    &conf.colors_light.cursor.cursor);
+
+    test_enum(&ctx, &parse_section_colors_light, "alpha-mode", 3,
+              (const char *[]){"default", "matching", "all"},
+              (int []){ALPHA_MODE_DEFAULT, ALPHA_MODE_MATCHING, ALPHA_MODE_ALL},
+              (int *)&conf.colors_light.alpha_mode);
+
+    test_enum(&ctx, &parse_section_colors_light, "dim-blend-towards", 2,
+              (const char *[]){"black", "white"},
+              (int []){DIM_BLEND_TOWARDS_BLACK, DIM_BLEND_TOWARDS_WHITE},
+              (int *)&conf.colors_light.dim_blend_towards);
+
+    for (size_t i = 0; i < 255; i++) {
+        char key_name[4];
+        sprintf(key_name, "%zu", i);
+        test_color(&ctx, &parse_section_colors_light, key_name, false,
+                   &conf.colors_light.table[i]);
+    }
+
+    test_invalid_key(&ctx, &parse_section_colors_light, "256");
 
     /* TODO: alpha (float in range 0-1, converted to uint16_t) */
 
@@ -1444,7 +1531,8 @@ main(int argc, const char *const *argv)
     test_section_cursor();
     test_section_mouse();
     test_section_touch();
-    test_section_colors();
+    test_section_colors_dark();
+    test_section_colors_light();
     test_section_csd();
     test_section_key_bindings();
     test_section_key_bindings_collisions();

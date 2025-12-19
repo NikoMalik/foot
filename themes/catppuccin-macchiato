@@ -1,7 +1,7 @@
 # _*_ conf _*_
 # Catppuccin Macchiato
 
-[colors]
+[colors-dark]
 foreground=cad3f5
 background=24273a
 

@@ -3,7 +3,7 @@
 # author: Protesilaos Stavrou (https://protesilaos.com)
 # description: Dark theme with a subdued palette on the green side of the spectrum (WCAG AA compliant)
 
-[colors]
+[colors-dark]
 #cursor = 162c22 bbbcbc
 foreground = bbbcbc
 background = 162c22

@@ -1,7 +1,7 @@
 # _*_ conf _*_
 # Night Owl
 
-[colors]
+[colors-dark]
 cursor=011627 80a4c2
 foreground=d6deeb
 background=011627

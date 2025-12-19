@@ -1,7 +1,7 @@
 # -*- conf -*-
 # Selenized dark
 
-[colors]
+[colors-dark]
 cursor = 103c48 53d6c7
 background= 103c48
 foreground= adbcbc

@@ -2,7 +2,10 @@
 
 # Reference: https://github.com/tokyo-night/tokyo-night-vscode-theme/blob/master/themes/tokyo-night-light-color-theme.json
 
-[colors]
+[main]
+initial-color-theme=light
+
+[colors-light]
 background=d6d8df
 foreground=343b58
 regular0=343b58

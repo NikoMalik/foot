@@ -9,7 +9,7 @@
 # encoding to sRGB again.
 
 # Dark
-[colors]
+[colors-dark]
 cursor=     002b36 93a1a1
 background= 002b36
 foreground= 839496
@@ -32,7 +32,7 @@ bright7=    ffffff
 
 
 # Light
-[colors2]
+[colors-light]
 cursor=     fdf6e3 586e75
 background= fdf6e3
 foreground= 657b83

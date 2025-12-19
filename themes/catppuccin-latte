@@ -1,7 +1,10 @@
 # _*_ conf _*_
 # Catppuccin Latte
 
-[colors]
+[main]
+initial-color-theme=light
+
+[colors-light]
 foreground=4c4f69
 background=eff1f5
 

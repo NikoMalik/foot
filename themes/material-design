@@ -2,7 +2,7 @@
 # Material
 # From https://github.com/MartinSeeler/iterm2-material-design
 
-[colors]
+[colors-dark]
 foreground=ECEFF1
 background=263238
 regular0=546E7A  # black

@@ -3,7 +3,7 @@
 # https://github.com/n1ghtmare/noirblaze-kitty
 
 
-[colors]
+[colors-dark]
 cursor=121212 ff0088
 foreground=d5d5d5
 background=121212

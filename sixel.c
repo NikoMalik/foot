@@ -137,7 +137,7 @@ sixel_init(struct terminal *term, int p1, int p2, int p3)
     }
 
     const size_t active_palette_entries = min(
-            ALEN(term->conf->colors.sixel), term->sixel.palette_size);
+            ALEN(term->conf->colors_dark.sixel), term->sixel.palette_size);
 
     if (term->sixel.use_private_palette) {
         xassert(term->sixel.private_palette == NULL);
@@ -145,7 +145,7 @@ sixel_init(struct terminal *term, int p1, int p2, int p3)
             term->sixel.palette_size, sizeof(term->sixel.private_palette[0]));
 
         memcpy(
-            term->sixel.private_palette, term->conf->colors.sixel,
+            term->sixel.private_palette, term->conf->colors_dark.sixel,
             active_palette_entries * sizeof(term->sixel.private_palette[0]));
 
         if (term->sixel.linear_blending || term->sixel.use_10bit) {
@@ -164,7 +164,7 @@ sixel_init(struct terminal *term, int p1, int p2, int p3)
                 term->sixel.palette_size, sizeof(term->sixel.shared_palette[0]));
 
             memcpy(
-                term->sixel.shared_palette, term->conf->colors.sixel,
+                term->sixel.shared_palette, term->conf->colors_dark.sixel,
                 active_palette_entries * sizeof(term->sixel.shared_palette[0]));
 
             if (term->sixel.linear_blending || term->sixel.use_10bit) {

@@ -1,7 +1,7 @@
 # -*- conf -*-
 # Rosé Pine Moon
 
-[colors]
+[colors-dark]
 cursor=232136 e0def4
 background=232136
 foreground=e0def4

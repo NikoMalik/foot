@@ -195,8 +195,10 @@ struct color_theme {
 };
 
 enum which_color_theme {
-    COLOR_THEME1,
-    COLOR_THEME2,
+    COLOR_THEME_DARK,
+    COLOR_THEME_LIGHT,
+    COLOR_THEME_1,  /* Deprecated */
+    COLOR_THEME_2, /* Deprecated */
 };
 
 enum shm_bit_depth {
@@ -327,8 +329,8 @@ struct config {
 
     tll(struct custom_regex) custom_regexes;
 
-    struct color_theme colors;
-    struct color_theme colors2;
+    struct color_theme colors_dark;
+    struct color_theme colors_light;
     enum which_color_theme initial_color_theme;
 
     struct {

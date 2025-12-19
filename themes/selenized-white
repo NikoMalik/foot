@@ -1,7 +1,10 @@
 # -*- conf -*-
 # Selenized white
 
-[colors]
+[main]
+initial-color-theme=light
+
+[colors-light]
 cursor=ffffff 009a8a
 background= ffffff
 foreground= 474747

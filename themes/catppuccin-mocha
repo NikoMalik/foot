@@ -1,7 +1,7 @@
 # _*_ conf _*_
 # Catppuccin Mocha
 
-[colors]
+[colors-dark]
 foreground=cdd6f4
 background=1e1e2e
 

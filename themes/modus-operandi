@@ -3,7 +3,11 @@
 # modus-operandi
 # See: https://protesilaos.com/emacs/modus-themes
 #
-[colors]
+
+[main]
+initial-color-theme=light
+
+[colors-light]
 background=ffffff
 foreground=000000
 regular0=000000

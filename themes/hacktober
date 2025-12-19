@@ -1,6 +1,6 @@
 # -*- conf -*-
 
-[colors]
+[colors-dark]
 cursor=141414 c9c9c9
 foreground=c9c9c9
 background=141414

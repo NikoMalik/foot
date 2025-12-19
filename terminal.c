@@ -1271,8 +1271,10 @@ term_init(const struct config *conf, struct fdm *fdm, struct reaper *reaper,
 
     const struct color_theme *theme = NULL;
     switch (conf->initial_color_theme) {
-    case COLOR_THEME1: theme = &conf->colors; break;
-    case COLOR_THEME2: theme = &conf->colors2; break;
+    case COLOR_THEME_DARK: theme = &conf->colors_dark; break;
+    case COLOR_THEME_LIGHT: theme = &conf->colors_light; break;
+    case COLOR_THEME_1: BUG("COLOR_THEME_1 should not be used"); break;
+    case COLOR_THEME_2: BUG("COLOR_THEME_2 should not be used"); break;
     }
 
     /* Initialize configure-based terminal attributes */
@@ -2177,8 +2179,10 @@ term_reset(struct terminal *term, bool hard)
     const struct color_theme *theme = NULL;
 
     switch (term->conf->initial_color_theme) {
-    case COLOR_THEME1: theme = &term->conf->colors; break;
-    case COLOR_THEME2: theme = &term->conf->colors2; break;
+    case COLOR_THEME_DARK: theme = &term->conf->colors_dark; break;
+    case COLOR_THEME_LIGHT: theme = &term->conf->colors_light; break;
+    case COLOR_THEME_1: BUG("COLOR_THEME_1 should not be used"); break;
+    case COLOR_THEME_2: BUG("COLOR_THEME_2 should not be used"); break;
     }
 
     term->flash.active = false;
@@ -4742,13 +4746,13 @@ term_send_size_notification(struct terminal *term)
 }
 
 void
-term_theme_switch_to_1(struct terminal *term)
+term_theme_switch_to_dark(struct terminal *term)
 {
-    if (term->colors.active_theme == COLOR_THEME1)
+    if (term->colors.active_theme == COLOR_THEME_DARK)
         return;
 
-    term_theme_apply(term, &term->conf->colors);
-    term->colors.active_theme = COLOR_THEME1;
+    term_theme_apply(term, &term->conf->colors_dark);
+    term->colors.active_theme = COLOR_THEME_DARK;
 
     wayl_win_alpha_changed(term->window);
     term_font_subpixel_changed(term);
@@ -4762,13 +4766,13 @@ term_theme_switch_to_1(struct terminal *term)
 }
 
 void
-term_theme_switch_to_2(struct terminal *term)
+term_theme_switch_to_light(struct terminal *term)
 {
-    if (term->colors.active_theme == COLOR_THEME2)
+    if (term->colors.active_theme == COLOR_THEME_LIGHT)
         return;
 
-    term_theme_apply(term, &term->conf->colors2);
-    term->colors.active_theme = COLOR_THEME2;
+    term_theme_apply(term, &term->conf->colors_light);
+    term->colors.active_theme = COLOR_THEME_LIGHT;
 
     wayl_win_alpha_changed(term->window);
     term_font_subpixel_changed(term);
@@ -4784,15 +4788,15 @@ term_theme_switch_to_2(struct terminal *term)
 void
 term_theme_toggle(struct terminal *term)
 {
-    if (term->colors.active_theme == COLOR_THEME1) {
-        term_theme_apply(term, &term->conf->colors2);
-        term->colors.active_theme = COLOR_THEME2;
+    if (term->colors.active_theme == COLOR_THEME_DARK) {
+        term_theme_apply(term, &term->conf->colors_light);
+        term->colors.active_theme = COLOR_THEME_LIGHT;
 
         if (term->report_theme_changes)
             term_to_slave(term, "\033[?997;2n", 9);
     } else {
-        term_theme_apply(term, &term->conf->colors);
-        term->colors.active_theme = COLOR_THEME1;
+        term_theme_apply(term, &term->conf->colors_dark);
+        term->colors.active_theme = COLOR_THEME_DARK;
 
         if (term->report_theme_changes)
             term_to_slave(term, "\033[?997;1n", 9);

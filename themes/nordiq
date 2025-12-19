@@ -1,7 +1,7 @@
 # -*- conf -*-
 # Nordiq
 
-[colors]
+[colors-dark]
 cursor=eeeeee 9f515a
 foreground=dbdee9
 background=0e1420

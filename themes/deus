@@ -2,7 +2,7 @@
 # Deus
 # Color palette based on: https://github.com/ajmwagar/vim-deus
 
-[colors]
+[colors-dark]
 cursor=2c323b eaeaea
 background=2c323b
 foreground=eaeaea

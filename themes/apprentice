@@ -1,7 +1,7 @@
 # -*- conf -*-
 # https://github.com/romainl/Apprentice
 
-[colors]
+[colors-dark]
 cursor=262626 6c6c6c
 foreground=bcbcbc
 background=262626

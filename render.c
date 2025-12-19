@@ -293,7 +293,7 @@ static inline uint32_t
 color_dim(const struct terminal *term, uint32_t color)
 {
     const struct config *conf = term->conf;
-    const uint8_t custom_dim = conf->colors.use_custom.dim;
+    const uint8_t custom_dim = conf->colors_dark.use_custom.dim;
 
     if (unlikely(custom_dim != 0)) {
         for (size_t i = 0; i < 8; i++) {
@@ -302,7 +302,7 @@ color_dim(const struct terminal *term, uint32_t color)
 
             if (term->colors.table[0 + i] == color) {
                 /* "Regular" color, return the corresponding "dim" */
-                return conf->colors.dim[i];
+                return conf->colors_dark.dim[i];
             }
 
             else if (term->colors.table[8 + i] == color) {
@@ -312,9 +312,9 @@ color_dim(const struct terminal *term, uint32_t color)
         }
     }
 
-    const struct color_theme *theme = term->colors.active_theme == COLOR_THEME1
-        ? &conf->colors
-        : &conf->colors2;
+    const struct color_theme *theme = term->colors.active_theme == COLOR_THEME_DARK
+        ? &conf->colors_dark
+        : &conf->colors_light;
 
     return color_blend_towards(
         color,
@@ -776,7 +776,7 @@ render_cell(struct terminal *term, pixman_image_t *pix,
         }
 
         else if (!term->window->is_fullscreen && term->colors.alpha != 0xffff) {
-            switch (term->conf->colors.alpha_mode) {
+            switch (term->conf->colors_dark.alpha_mode) {
             case ALPHA_MODE_DEFAULT: {
                 if (cell->attrs.bg_src == COLOR_DEFAULT) {
                     alpha = term->colors.alpha;
@@ -1175,8 +1175,8 @@ render_cell(struct terminal *term, pixman_image_t *pix,
 
     if (unlikely(cell->attrs.url)) {
         pixman_color_t url_color = color_hex_to_pixman(
-            term->conf->colors.use_custom.url
-            ? term->conf->colors.url
+            term->conf->colors_dark.use_custom.url
+            ? term->conf->colors_dark.url
             : term->colors.table[3],
             gamma_correct);
         draw_underline(term, pix, font, &url_color, x, y, cell_cols);
@@ -1991,8 +1991,8 @@ render_overlay(struct terminal *term)
 
     case OVERLAY_FLASH:
         color = color_hex_to_pixman_with_alpha(
-                term->conf->colors.flash,
-                term->conf->colors.flash_alpha,
+                term->conf->colors_dark.flash,
+                term->conf->colors_dark.flash_alpha,
                 wayl_do_linear_blending(term->wl, term->conf));
         break;
 
@@ -2510,10 +2510,10 @@ render_csd_title(struct terminal *term, const struct csd_data *info,
 
     uint32_t bg = term->conf->csd.color.title_set
         ? term->conf->csd.color.title
-        : 0xffu << 24 | term->conf->colors.fg;
+        : 0xffu << 24 | term->conf->colors_dark.fg;
     uint32_t fg = term->conf->csd.color.buttons_set
         ? term->conf->csd.color.buttons
-        : term->conf->colors.bg;
+        : term->conf->colors_dark.bg;
 
     if (!term->visual_focus) {
         bg = color_dim(term, bg);
@@ -2607,7 +2607,7 @@ render_csd_border(struct terminal *term, enum csd_surface surf_idx,
         uint32_t _color =
             conf->csd.color.border_set ? conf->csd.color.border :
             conf->csd.color.title_set ? conf->csd.color.title :
-            0xffu << 24 | term->conf->colors.fg;
+            0xffu << 24 | term->conf->colors_dark.fg;
         if (!term->visual_focus)
             _color = color_dim(term, _color);
 
@@ -2627,7 +2627,7 @@ static pixman_color_t
 get_csd_button_fg_color(const struct terminal *term)
 {
     const struct config *conf = term->conf;
-    uint32_t _color = conf->colors.bg;
+    uint32_t _color = conf->colors_dark.bg;
     uint16_t alpha = 0xffff;
 
     if (conf->csd.color.buttons_set) {
@@ -2872,7 +2872,7 @@ render_csd_button(struct terminal *term, enum csd_surface surf_idx,
 
     switch (surf_idx) {
     case CSD_SURF_MINIMIZE:
-        _color = term->conf->colors.table[4];  /* blue */
+        _color = term->conf->colors_dark.table[4];  /* blue */
         is_set = term->conf->csd.color.minimize_set;
         conf_color = &term->conf->csd.color.minimize;
         is_active = term->active_surface == TERM_SURF_BUTTON_MINIMIZE &&
@@ -2880,7 +2880,7 @@ render_csd_button(struct terminal *term, enum csd_surface surf_idx,
         break;
 
     case CSD_SURF_MAXIMIZE:
-        _color = term->conf->colors.table[2];  /* green */
+        _color = term->conf->colors_dark.table[2];  /* green */
         is_set = term->conf->csd.color.maximize_set;
         conf_color = &term->conf->csd.color.maximize;
         is_active = term->active_surface == TERM_SURF_BUTTON_MAXIMIZE &&
@@ -2888,7 +2888,7 @@ render_csd_button(struct terminal *term, enum csd_surface surf_idx,
         break;
 
     case CSD_SURF_CLOSE:
-        _color = term->conf->colors.table[1];  /* red */
+        _color = term->conf->colors_dark.table[1];  /* red */
         is_set = term->conf->csd.color.close_set;
         conf_color = &term->conf->csd.color.quit;
         is_active = term->active_surface == TERM_SURF_BUTTON_CLOSE &&
@@ -3117,9 +3117,9 @@ render_scrollback_position(struct terminal *term)
 
     uint32_t fg = term->colors.table[0];
     uint32_t bg = term->colors.table[8 + 4];
-    if (term->conf->colors.use_custom.scrollback_indicator) {
-        fg = term->conf->colors.scrollback_indicator.fg;
-        bg = term->conf->colors.scrollback_indicator.bg;
+    if (term->conf->colors_dark.use_custom.scrollback_indicator) {
+        fg = term->conf->colors_dark.scrollback_indicator.fg;
+        bg = term->conf->colors_dark.scrollback_indicator.bg;
     }
 
     render_osd(
@@ -3799,18 +3799,18 @@ render_search_box(struct terminal *term)
 
     const bool is_match = term->search.match_len == text_len;
     const bool custom_colors = is_match
-        ? term->conf->colors.use_custom.search_box_match
-        : term->conf->colors.use_custom.search_box_no_match;
+        ? term->conf->colors_dark.use_custom.search_box_match
+        : term->conf->colors_dark.use_custom.search_box_no_match;
 
     /* Background - yellow on empty/match, red on mismatch (default) */
     const bool gamma_correct = wayl_do_linear_blending(term->wl, term->conf);
     const pixman_color_t color = color_hex_to_pixman(
         is_match
         ? (custom_colors
-           ? term->conf->colors.search_box.match.bg
+           ? term->conf->colors_dark.search_box.match.bg
            : term->colors.table[3])
         : (custom_colors
-           ? term->conf->colors.search_box.no_match.bg
+           ? term->conf->colors_dark.search_box.no_match.bg
            : term->colors.table[1]),
         gamma_correct);
 
@@ -3832,8 +3832,8 @@ render_search_box(struct terminal *term)
     pixman_color_t fg = color_hex_to_pixman(
         custom_colors
         ? (is_match
-           ? term->conf->colors.search_box.match.fg
-           : term->conf->colors.search_box.no_match.fg)
+           ? term->conf->colors_dark.search_box.match.fg
+           : term->conf->colors_dark.search_box.no_match.fg)
         : term->colors.table[0],
         gamma_correct);
 
@@ -4254,11 +4254,11 @@ render_urls(struct terminal *term)
     struct buffer *bufs[render_count];
     shm_get_many(chain, render_count, widths, heights, bufs, false);
 
-    uint32_t fg = term->conf->colors.use_custom.jump_label
-        ? term->conf->colors.jump_label.fg
+    uint32_t fg = term->conf->colors_dark.use_custom.jump_label
+        ? term->conf->colors_dark.jump_label.fg
         : term->colors.table[0];
-    uint32_t bg = term->conf->colors.use_custom.jump_label
-        ? term->conf->colors.jump_label.bg
+    uint32_t bg = term->conf->colors_dark.use_custom.jump_label
+        ? term->conf->colors_dark.jump_label.bg
         : term->colors.table[3];
 
     for (size_t i = 0; i < render_count; i++) {

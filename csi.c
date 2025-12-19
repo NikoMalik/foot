@@ -1578,7 +1578,7 @@ csi_dispatch(struct terminal *term, uint8_t final)
                 int chars = snprintf(
                     reply, sizeof(reply),
                     "\033[?997;%dn",
-                    term->colors.active_theme == COLOR_THEME1 ? 1 : 2);
+                    term->colors.active_theme == COLOR_THEME_DARK ? 1 : 2);
 
                 term_to_slave(term, reply, chars);
                 break;

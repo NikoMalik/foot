@@ -2,7 +2,7 @@
 # nightfly
 # Based on https://github.com/bluz71/vim-nightfly-guicolors
 
-[colors]
+[colors-dark]
 cursor = 080808 9ca1aa
 foreground = acb4c2
 background = 011627

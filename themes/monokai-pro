@@ -1,7 +1,7 @@
 # -*- conf -*-
 # Monokai Pro
 
-[colors]
+[colors-dark]
 background=2D2A2E
 foreground=FCFCFA
 regular0=403E41

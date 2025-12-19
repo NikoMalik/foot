@@ -6,7 +6,7 @@
 # https://xcolors.net/neon
 #
 
-[colors]
+[colors-dark]
 foreground=f8f8f8
 background=171717
 regular0=171717

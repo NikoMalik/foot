@@ -3,7 +3,7 @@
 # author: ayushnix (https://sr.ht/~ayushnix)
 # description: A dark theme with bright cyberpunk colors (WCAG AAA compliant)
 
-[colors]
+[colors-dark]
 cursor = 181818 cdcdcd
 foreground = cdcdcd
 background = 181818

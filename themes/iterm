@@ -2,7 +2,7 @@
 # this foot theme is based on alacritty iterm theme:
 # https://github.com/alacritty/alacritty-theme/blob/master/themes/iterm.toml
 
-[colors]
+[colors-dark]
 foreground=fffbf6
 background=101421
 

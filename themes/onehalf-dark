@@ -7,7 +7,7 @@
 # + cursor colors from:
 # https://github.com/sonph/onehalf/blob/master/iterm/OneHalfDark.itermcolors
 
-[colors]
+[colors-dark]
 cursor=dcdfe4 a3b3cc
 foreground=dcdfe4
 background=282c34

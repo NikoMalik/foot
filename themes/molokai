@@ -2,7 +2,7 @@
 # Molokai
 # Based on zhou13's at https://github.com/zhou13/molokai-terminal/blob/master/xterm/Xresources
 
-[colors]
+[colors-dark]
 background=1B1D1E
 foreground=CCCCCC
 regular0=1B1D1E

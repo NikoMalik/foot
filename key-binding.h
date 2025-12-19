@@ -45,6 +45,8 @@ enum bind_action_normal {
     BIND_ACTION_REGEX_COPY,
     BIND_ACTION_THEME_SWITCH_1,
     BIND_ACTION_THEME_SWITCH_2,
+    BIND_ACTION_THEME_SWITCH_DARK,
+    BIND_ACTION_THEME_SWITCH_LIGHT,
     BIND_ACTION_THEME_TOGGLE,
 
     /* Mouse specific actions - i.e. they require a mouse coordinate */

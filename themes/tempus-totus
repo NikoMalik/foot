@@ -3,7 +3,10 @@
 # author: Protesilaos Stavrou (https://protesilaos.com)
 # description: Light theme for prose or for coding in an open space (WCAG AAA compliant)
 
-[colors]
+[main]
+initial-color-theme=light
+
+[colors-light]
 #cursor = ffffff 4a484d
 foreground = 4a484d
 background = ffffff

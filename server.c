@@ -182,11 +182,11 @@ fdm_client(struct fdm *fdm, int fd, int events, void *data)
 
             switch (sigusr.signo) {
             case SIGUSR1:
-                term_theme_switch_to_1(client->instance->terminal);
+                term_theme_switch_to_dark(client->instance->terminal);
                 break;
 
             case SIGUSR2:
-                term_theme_switch_to_2(client->instance->terminal);
+                term_theme_switch_to_light(client->instance->terminal);
                 break;
 
             default:
@@ -670,21 +670,21 @@ server_destroy(struct server *server)
 }
 
 void
-server_global_theme_switch_to_1(struct server *server)
+server_global_theme_switch_to_dark(struct server *server)
 {
-    server->conf->initial_color_theme = COLOR_THEME1;
+    server->conf->initial_color_theme = COLOR_THEME_DARK;
     tll_foreach(server->clients, it)
-        term_theme_switch_to_1(it->item->instance->terminal);
+        term_theme_switch_to_dark(it->item->instance->terminal);
     tll_foreach(server->terminals, it)
-        term_theme_switch_to_1(it->item->terminal);
+        term_theme_switch_to_dark(it->item->terminal);
 }
 
 void
-server_global_theme_switch_to_2(struct server *server)
+server_global_theme_switch_to_light(struct server *server)
 {
-    server->conf->initial_color_theme = COLOR_THEME2;
+    server->conf->initial_color_theme = COLOR_THEME_LIGHT;
     tll_foreach(server->clients, it)
-        term_theme_switch_to_2(it->item->instance->terminal);
+        term_theme_switch_to_light(it->item->instance->terminal);
     tll_foreach(server->terminals, it)
-        term_theme_switch_to_2(it->item->terminal);
+        term_theme_switch_to_light(it->item->terminal);
 }

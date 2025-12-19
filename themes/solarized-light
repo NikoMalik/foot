@@ -1,7 +1,10 @@
 # -*- conf -*-
 # Solarized light
 
-[colors]
+[main]
+initial-color-theme=light
+
+[colors-light]
 cursor=                  fdf6e3 586e75
 background=              fdf6e3
 foreground=              657b83

@@ -1,7 +1,10 @@
 # -*- conf -*-
 # Gruvbox - Light
 
-[colors]
+[main]
+initial-color-theme=light
+
+[colors-light]
 background=fbf1c7
 foreground=3c3836
 regular0=fbf1c7

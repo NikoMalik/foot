@@ -1,7 +1,7 @@
 # _*_ conf _*_
 # Catppuccin Frappe
 
-[colors]
+[colors-dark]
 foreground=c6d0f5
 background=303446
 

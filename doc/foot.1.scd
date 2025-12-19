@@ -695,8 +695,8 @@ variables to unset may be defined in *foot.ini*(5).
 
 The following signals have special meaning in foot:
 
-- SIGUSR1: switch to color theme 1 (i.e. use the *[colors]* section).
-- SIGUSR2: switch to color theme 2 (i.e. use the *[colors2]* section).
+- SIGUSR1: switch to the dark color theme (*[colors-dark]*).
+- SIGUSR2: switch to the light color theme (*[colors-light]*).
 
 Note: you can send SIGUSR1/SIGUSR2 to a *foot --server* process too,
 in which case all client instances will switch theme. Furthermore, all

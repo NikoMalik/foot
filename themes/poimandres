@@ -1,7 +1,7 @@
 # Based on Poimandres color theme for kitti terminal emulator
 # https://github.com/ubmit/poimandres-kitty
 
-[colors]
+[colors-dark]
 cursor=1b1e28 ffffff
 foreground=a6accd
 background=1b1e28

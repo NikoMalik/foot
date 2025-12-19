@@ -4,7 +4,7 @@
 # See: https://protesilaos.com/emacs/modus-themes
 #
 
-[colors]
+[colors-dark]
 background=000000
 foreground=ffffff
 regular0=000000

@@ -3,7 +3,7 @@
 # author: Protesilaos Stavrou (https://protesilaos.com)
 # description: High contrast dark theme with bright colours (WCAG AAA compliant)
 
-[colors]
+[colors-dark]
 #cursor = 1a1a1a e0e0e0
 foreground = e0e0e0
 background = 1a1a1a

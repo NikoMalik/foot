@@ -1,7 +1,10 @@
 # -*- conf -*-
 # Selenized light
 
-[colors]
+[main]
+initial-color-theme=light
+
+[colors-light]
 cursor=fbf3db 00978a
 background= fbf3db
 foreground= 53676d

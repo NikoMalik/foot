@@ -1,7 +1,7 @@
 # -*- conf -*-
 # Dracula iTerm2 variant
 
-[colors]
+[colors-dark]
 cursor=ffffff bbbbbb
 foreground=f8f8f2
 background=1e1f29

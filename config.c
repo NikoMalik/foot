@@ -144,6 +144,8 @@ static const char *const binding_action_map[] = {
     [BIND_ACTION_REGEX_COPY] = "regex-copy",
     [BIND_ACTION_THEME_SWITCH_1] = "color-theme-switch-1",
     [BIND_ACTION_THEME_SWITCH_2] = "color-theme-switch-2",
+    [BIND_ACTION_THEME_SWITCH_DARK] = "color-theme-switch-dark",
+    [BIND_ACTION_THEME_SWITCH_LIGHT] = "color-theme-switch-light",
     [BIND_ACTION_THEME_TOGGLE] = "color-theme-toggle",
 
     /* Mouse-specific actions */
@@ -1118,8 +1120,40 @@ parse_section_main(struct context *ctx)
             sizeof(conf->initial_color_theme) == sizeof(int),
             "enum is not 32-bit");
 
-        return value_to_enum(ctx, (const char*[]){"1", "2", NULL},
-                             (int *)&conf->initial_color_theme);
+        if (!value_to_enum(ctx, (const char*[]){
+            "dark", "light", "1", "2", NULL},
+                           (int *)&conf->initial_color_theme))
+            return false;
+
+        if (streq(ctx->value, "1")) {
+            LOG_WARN("%s:%d: [main].initial-color-theme=1 deprecated, "
+                     "use [main].initial-color-theme=dark instead",
+                     ctx->path, ctx->lineno);
+
+            user_notification_add(
+                &ctx->conf->notifications,
+                USER_NOTIFICATION_DEPRECATED,
+                xstrdup("[main].initial-color-theme=1: "
+                        "use [main].initial-color-theme=dark instead"));
+
+            conf->initial_color_theme = COLOR_THEME_DARK;
+        }
+
+        else if (streq(ctx->value, "2")) {
+            LOG_WARN("%s:%d: [main].initial-color-theme=2 deprecated, "
+                     "use [main].initial-color-theme=light instead",
+                     ctx->path, ctx->lineno);
+
+            user_notification_add(
+                &ctx->conf->notifications,
+                USER_NOTIFICATION_DEPRECATED,
+                xstrdup("[main].initial-color-theme=2: "
+                        "use [main].initial-color-theme=light instead"));
+
+            conf->initial_color_theme = COLOR_THEME_LIGHT;
+        }
+
+        return true;
     }
 
     else if (streq(key, "uppercase-regex-insert"))
@@ -1556,15 +1590,43 @@ parse_color_theme(struct context *ctx, struct color_theme *theme)
 }
 
 static bool
+parse_section_colors_dark(struct context *ctx)
+{
+    return parse_color_theme(ctx, &ctx->conf->colors_dark);
+}
+
+static bool
+parse_section_colors_light(struct context *ctx)
+{
+    return parse_color_theme(ctx, &ctx->conf->colors_light);
+}
+
+static bool
 parse_section_colors(struct context *ctx)
 {
-    return parse_color_theme(ctx, &ctx->conf->colors);
+    LOG_WARN("%s:%d: [colors]: deprecated; use [colors-dark] instead",
+             ctx->path, ctx->lineno);
+
+    user_notification_add(
+        &ctx->conf->notifications,
+        USER_NOTIFICATION_DEPRECATED,
+        xstrdup("[colors]: use [colors-dark] instead"));
+
+    return parse_color_theme(ctx, &ctx->conf->colors_dark);
 }
 
 static bool
 parse_section_colors2(struct context *ctx)
 {
-    return parse_color_theme(ctx, &ctx->conf->colors2);
+    LOG_WARN("%s:%d: [colors2]: deprecated; use [colors-light] instead",
+             ctx->path, ctx->lineno);
+
+    user_notification_add(
+        &ctx->conf->notifications,
+        USER_NOTIFICATION_DEPRECATED,
+        xstrdup("[colors2]: use [colors-light] instead"));
+
+    return parse_color_theme(ctx, &ctx->conf->colors_light);
 }
 
 static bool
@@ -1610,14 +1672,14 @@ parse_section_cursor(struct context *ctx)
 
         if (!value_to_two_colors(
             ctx,
-            &conf->colors.cursor.text,
-            &conf->colors.cursor.cursor,
+            &conf->colors_dark.cursor.text,
+            &conf->colors_dark.cursor.cursor,
             false))
         {
             return false;
         }
 
-        conf->colors.use_custom.cursor = true;
+        conf->colors_dark.use_custom.cursor = true;
         return true;
     }
 
@@ -2266,6 +2328,29 @@ parse_key_binding_section(struct context *ctx,
             aux.type = BINDING_AUX_REGEX;
             aux.master_copy = true;
             aux.regex_name = regex_name;
+        }
+
+        if (action_map == binding_action_map &&
+            action >= BIND_ACTION_THEME_SWITCH_1 &&
+            action <= BIND_ACTION_THEME_SWITCH_2)
+        {
+            const char *use_instead =
+                action_map[action == BIND_ACTION_THEME_SWITCH_1
+                    ? BIND_ACTION_THEME_SWITCH_DARK
+                    : BIND_ACTION_THEME_SWITCH_LIGHT];
+
+            const char *notif = action == BIND_ACTION_THEME_SWITCH_1
+                ? "[key-bindings].color-theme-switch-1: use [key-bindings].color-theme-switch-dark instead"
+                : "[key-bindings].color-theme-switch-2: use [key-bindings].color-theme-switch-light instead";
+
+            LOG_WARN("%s:%d: [key-bindings].%s: deprecated, use %s instead",
+                     ctx->path, ctx->lineno,
+                     action_map[action], use_instead);
+
+            user_notification_add(
+                &ctx->conf->notifications,
+                USER_NOTIFICATION_DEPRECATED,
+                xstrdup(notif));
         }
 
         if (!value_to_key_combos(ctx, action, &aux, bindings, KEY_BINDING)) {
@@ -2958,8 +3043,8 @@ enum section {
     SECTION_SCROLLBACK,
     SECTION_URL,
     SECTION_REGEX,
-    SECTION_COLORS,
-    SECTION_COLORS2,
+    SECTION_COLORS_DARK,
+    SECTION_COLORS_LIGHT,
     SECTION_CURSOR,
     SECTION_MOUSE,
     SECTION_CSD,
@@ -2971,6 +3056,11 @@ enum section {
     SECTION_ENVIRONMENT,
     SECTION_TWEAK,
     SECTION_TOUCH,
+
+    /* Deprecated */
+    SECTION_COLORS,
+    SECTION_COLORS2,
+
     SECTION_COUNT,
 };
 
@@ -2989,8 +3079,8 @@ static const struct {
     [SECTION_SCROLLBACK] =      {&parse_section_scrollback, "scrollback"},
     [SECTION_URL] =             {&parse_section_url, "url"},
     [SECTION_REGEX] =           {&parse_section_regex, "regex", true},
-    [SECTION_COLORS] =          {&parse_section_colors, "colors"},
-    [SECTION_COLORS2] =         {&parse_section_colors2, "colors2"},
+    [SECTION_COLORS_DARK] =     {&parse_section_colors_dark, "colors-dark"},
+    [SECTION_COLORS_LIGHT] =    {&parse_section_colors_light, "colors-light"},
     [SECTION_CURSOR] =          {&parse_section_cursor, "cursor"},
     [SECTION_MOUSE] =           {&parse_section_mouse, "mouse"},
     [SECTION_CSD] =             {&parse_section_csd, "csd"},
@@ -3002,6 +3092,10 @@ static const struct {
     [SECTION_ENVIRONMENT] =     {&parse_section_environment, "environment"},
     [SECTION_TWEAK] =           {&parse_section_tweak, "tweak"},
     [SECTION_TOUCH] =           {&parse_section_touch, "touch"},
+
+    /* Deprecated */
+    [SECTION_COLORS] =          {&parse_section_colors, "colors"},
+    [SECTION_COLORS2] =         {&parse_section_colors2, "colors2"},
 };
 
 static_assert(ALEN(section_info) == SECTION_COUNT, "section info array size mismatch");
@@ -3435,7 +3529,7 @@ config_load(struct config *conf, const char *conf_path,
             },
             .multiplier = 3.,
         },
-        .colors = {
+        .colors_dark = {
             .fg = default_foreground,
             .bg = default_background,
             .flash = 0x7f7f00,
@@ -3455,7 +3549,7 @@ config_load(struct config *conf, const char *conf_path,
                 .url = false,
             },
         },
-        .initial_color_theme = COLOR_THEME1,
+        .initial_color_theme = COLOR_THEME_DARK,
         .cursor = {
             .style = CURSOR_BLOCK,
             .unfocused_style = CURSOR_UNFOCUSED_HOLLOW,
@@ -3535,10 +3629,10 @@ config_load(struct config *conf, const char *conf_path,
         .notifications = tll_init(),
     };
 
-    memcpy(conf->colors.table, default_color_table, sizeof(default_color_table));
-    memcpy(conf->colors.sixel, default_sixel_colors, sizeof(default_sixel_colors));
-    memcpy(&conf->colors2, &conf->colors, sizeof(conf->colors));
-    conf->colors2.dim_blend_towards = DIM_BLEND_TOWARDS_WHITE;
+    memcpy(conf->colors_dark.table, default_color_table, sizeof(default_color_table));
+    memcpy(conf->colors_dark.sixel, default_sixel_colors, sizeof(default_sixel_colors));
+    memcpy(&conf->colors_light, &conf->colors_dark, sizeof(conf->colors_dark));
+    conf->colors_light.dim_blend_towards = DIM_BLEND_TOWARDS_WHITE;
 
     parse_modifiers(XKB_MOD_NAME_SHIFT, 5, &conf->mouse.selection_override_modifiers);
 
