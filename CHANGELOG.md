@@ -101,6 +101,11 @@
 
 
 ### Removed
+
+* `cursor.color` config option (deprecated in 1.23.0). Use
+  `colors-{dark,light}.cursor` instead.
+
+
 ### Fixed
 
 * Search mode: composing keys not ignored.

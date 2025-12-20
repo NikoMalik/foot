@@ -1661,28 +1661,6 @@ parse_section_cursor(struct context *ctx)
     else if (streq(key, "blink-rate"))
         return value_to_uint32(ctx, 10, &conf->cursor.blink.rate_ms);
 
-    else if (streq(key, "color")) {
-        LOG_WARN("%s:%d: cursor.color: deprecated; use colors.cursor instead",
-                 ctx->path, ctx->lineno);
-
-        user_notification_add(
-            &conf->notifications,
-            USER_NOTIFICATION_DEPRECATED,
-            xstrdup("cursor.color: use colors.cursor instead"));
-
-        if (!value_to_two_colors(
-            ctx,
-            &conf->colors_dark.cursor.text,
-            &conf->colors_dark.cursor.cursor,
-            false))
-        {
-            return false;
-        }
-
-        conf->colors_dark.use_custom.cursor = true;
-        return true;
-    }
-
     else if (streq(key, "beam-thickness"))
         return value_to_pt_or_px(ctx, &conf->cursor.beam_thickness);
 
