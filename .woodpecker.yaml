@@ -13,6 +13,7 @@ steps:
       - apk add py3-pip
       - python3 -m venv venv
       - source venv/bin/activate
+      - python -m pip install --upgrade pip
       - pip install codespell
       - pip install mypy
       - pip install ruff
