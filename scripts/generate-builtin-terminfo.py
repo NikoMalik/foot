@@ -6,7 +6,7 @@ import re
 
 
 class Capability:
-    def __init__(self, name: str, value: bool | int | str) -> None:
+    def __init__(self, name: str, value: bool | int | str):
         self._name = name
         self._value = value
 
@@ -50,7 +50,7 @@ class Capability:
 
 
 class BoolCapability(Capability):
-    def __init__(self, name: str) -> None:
+    def __init__(self, name: str):
         super().__init__(name, True)
 
 
@@ -59,7 +59,7 @@ class IntCapability(Capability):
 
 
 class StringCapability(Capability):
-    def __init__(self, name: str, value: str) -> None:
+    def __init__(self, name: str, value: str):
         # see terminfo(5) for valid escape sequences
 
         # Control characters
@@ -92,7 +92,7 @@ class StringCapability(Capability):
 
 
 class Fragment:
-    def __init__(self, name: str, description: str) -> None:
+    def __init__(self, name: str, description: str):
         self._name = name
         self._description = description
         self._caps = dict[str, Capability]()

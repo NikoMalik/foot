@@ -4,7 +4,7 @@ import argparse
 
 
 class Codepoint:
-    def __init__(self, start: int, end: None | int = None) -> None:
+    def __init__(self, start: int, end: None | int = None):
         self.start = start
         self.end = start if end is None else end
         self.vs15 = False
