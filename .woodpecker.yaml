@@ -17,6 +17,24 @@ steps:
       - codespell -Lser,doas,zar,rin README.md INSTALL.md CHANGELOG.md *.c *.h doc/*.scd
       - deactivate
 
+  - name: mypy
+    when:
+      - event: [manual, pull_request]
+      - event: [push, tag]
+        branch: [master, releases/*]
+    image: alpine:edge
+    commands:
+      - apk add openssl
+      - apk add python3
+      - apk add py3-pip
+      - python3 -m venv mypy-venv
+      - source mypy-venv/bin/activate
+      - pip install mypy
+      - pip install ruff
+      - mypy
+      - ruff check
+      - deactivate
+
   - name: subprojects
     when:
       - event: [manual, pull_request]
