@@ -1,0 +1,3 @@
+[tool.mypy]
+files = '$MYPY_CONFIG_FILE_DIR/scripts'
+strict = true
