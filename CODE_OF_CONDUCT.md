@@ -53,7 +53,7 @@ decisions when appropriate.
 Participants in the foot community are expected to uphold the described
 standards not only in official community spaces (issue trackers, IRC channels,
 etc.) but in all public spaces. The Code of Conduct however does acknowledge
-that people are fallible and that it is possible to truely correct a past
+that people are fallible and that it is possible to truly correct a past
 pattern of unacceptable behavior. That is to say, the scope of the Code of
 Conduct does not necessarily extend into the distant past.
 

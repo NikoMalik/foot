@@ -14,7 +14,7 @@ steps:
       - python3 -m venv codespell-venv
       - source codespell-venv/bin/activate
       - pip install codespell
-      - codespell -Lser,doas,zar,rin README.md INSTALL.md CHANGELOG.md *.c *.h doc/*.scd
+      - codespell
       - deactivate
 
   - name: mypy
