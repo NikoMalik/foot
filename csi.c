@@ -1644,10 +1644,10 @@ csi_dispatch(struct terminal *term, uint8_t final)
                  *  64 - vt520
                  *  65 - vt525
                  *
-                 * Param 2 - firmware version
-                 *  xterm uses its version number. We use an xterm
-                 *  version number too, since e.g. Emacs uses this to
-                 *  determine level of support.
+                 * Param 2 - firmware version xterm uses its version
+                 *  number. We do to, in the format "MAJORMINORPATCH",
+                 *  where all three version numbers are always two
+                 *  digits. So e.g. 1.25.0 is reported as 012500.
                  *
                  * We report ourselves as a VT220. This must be
                  * synchronized with the primary DA response.
