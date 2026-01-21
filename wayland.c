@@ -115,7 +115,7 @@ static void
 handle_dmabuf_feedback_main_device(void *data, struct zwp_linux_dmabuf_feedback_v1 *feedback, struct wl_array *device) {
 
     dev_t dev_id;
-    assert(device->size == sizeof(dev_id));
+    xassert(device->size == sizeof(dev_id));
     memcpy(&dev_id, device->data, sizeof(dev_id));
 
     struct wayland *wayl = data;
@@ -133,7 +133,7 @@ static void
 handle_dmabuf_feedback_tranche_target_device(void *data, struct zwp_linux_dmabuf_feedback_v1 *feedback, struct wl_array *device) {
 
     dev_t dev_id;
-    assert(device->size == sizeof(dev_id));
+    xassert(device->size == sizeof(dev_id));
     memcpy(&dev_id, device->data, sizeof(dev_id));
 
     LOG_DBG("linux dmabuf feedback tranche target device: %ld", dev_id);
