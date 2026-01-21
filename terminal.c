@@ -1989,10 +1989,11 @@ int term_destroy(struct terminal *term) {
 
     free(term);
 
-#if defined(__GLIBC__)
-    if (!malloc_trim(0))
-        LOG_WARN("failed to trim memory");
-#endif
+    // #if defined(__GLIBC__)
+    //     if (!malloc_trim(0))
+    //         LOG_WARN("failed to trim memory");
+    // #endif
+    xtrim();
 
     return ret;
 }

@@ -127,3 +127,12 @@ xasprintf(const char *format, ...) {
     va_end(ap);
     return str;
 }
+
+inline void xtrim(void) {
+#if defined(MIMALLOC)
+    mi_collect(true);
+#elif defined(__GLIBC__)
+    if (!malloc_trim(0))
+        LOG_WARN("malloc_trim(0) failed");
+#endif
+}

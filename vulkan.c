@@ -57,7 +57,7 @@ static int
 vulkan_select_queue_family(struct vulkan *vk, VkPhysicalDevice phdev) {
     uint32_t qfam_count;
     vkGetPhysicalDeviceQueueFamilyProperties(vk->physical_device, &qfam_count, NULL);
-    assert(qfam_count > 0);
+    xassert(qfam_count > 0);
     VkQueueFamilyProperties queue_props[qfam_count];
     vkGetPhysicalDeviceQueueFamilyProperties(vk->physical_device, &qfam_count, queue_props);
 
@@ -76,7 +76,7 @@ vulkan_select_queue_family(struct vulkan *vk, VkPhysicalDevice phdev) {
     abort();
 }
 
-static bool
+inline static bool
 check_extension(const VkExtensionProperties *avail, uint32_t avail_len, const char *name) {
     for (size_t i = 0; i < avail_len; i++)
         if (strcmp(avail[i].extensionName, name) == 0)
@@ -257,52 +257,52 @@ struct vk_buffer_private {
     VkDeviceMemory memory;
 };
 
-static inline void
-vk_buffer_destroy(struct vk_buffer_private *img) {
-    if (img->public.pix) {
-        for (size_t i = 0; i < img->public.pix_instances; i++)
-            if (img->public.pix[i] != NULL)
-                pixman_image_unref(img->public.pix[i]);
-        free(img->public.pix);
-    }
-    if (img->public.dirty) {
-        for (size_t i = 0; i < img->public.pix_instances; i++)
-            pixman_region32_fini(&img->public.dirty[i]);
-        free(img->public.dirty);
-    }
-    if (img->public.wl_buf)
-        wl_buffer_destroy(img->public.wl_buf);
-    if (img->public.data)
-        vkUnmapMemory(img->vk->device, img->memory);
-    if (img->public.fd != -1)
-        close(img->public.fd);
-    if (img->memory)
-        vkFreeMemory(img->vk->device, img->memory, NULL);
-    if (img->buffer)
-        vkDestroyBuffer(img->vk->device, img->buffer, NULL);
-    free(img);
+// static inline void
+// vk_buffer_destroy(struct vk_buffer_private *img) {
+//     if (img->public.pix) {
+//         for (size_t i = 0; i < img->public.pix_instances; i++)
+//             if (img->public.pix[i] != NULL)
+//                 pixman_image_unref(img->public.pix[i]);
+//         free(img->public.pix);
+//     }
+//     if (img->public.dirty) {
+//         for (size_t i = 0; i < img->public.pix_instances; i++)
+//             pixman_region32_fini(&img->public.dirty[i]);
+//         free(img->public.dirty);
+//     }
+//     if (img->public.wl_buf)
+//         wl_buffer_destroy(img->public.wl_buf);
+//     if (img->public.data)
+//         vkUnmapMemory(img->vk->device, img->memory);
+//     if (img->public.fd != -1)
+//         close(img->public.fd);
+//     if (img->memory)
+//         vkFreeMemory(img->vk->device, img->memory, NULL);
+//     if (img->buffer)
+//         vkDestroyBuffer(img->vk->device, img->buffer, NULL);
+//     free(img);
+// }
+
+inline static void
+vk_buffer_destroy_dont_close(struct vk_buffer *buf) {
+    if (buf->pix != NULL)
+        for (size_t i = 0; i < buf->pix_instances; i++)
+            if (buf->pix[i] != NULL)
+                pixman_image_unref(buf->pix[i]);
+
+    free(buf->pix);
+    buf->pix = NULL;
 }
 
-// static void
-// vk_buffer_destroy_dont_close(struct vk_buffer *buf) {
-//     if (buf->pix != NULL)
-//         for (size_t i = 0; i < buf->pix_instances; i++)
-//             if (buf->pix[i] != NULL)
-//                 pixman_image_unref(buf->pix[i]);
-//
-//     free(buf->pix);
-//     buf->pix = NULL;
-// }
-//
-// static void
-// vk_buffer_destroy(struct vk_buffer_private *buf) {
-//     vk_buffer_destroy_dont_close(&buf->public);
-//
-//     for (size_t i = 0; i < buf->public.pix_instances; i++)
-//         pixman_region32_fini(&buf->public.dirty[i]);
-//     free(buf->public.dirty);
-//     free(buf);
-// }
+inline static void
+vk_buffer_destroy(struct vk_buffer_private *buf) {
+    vk_buffer_destroy_dont_close(&buf->public);
+
+    for (size_t i = 0; i < buf->public.pix_instances; i++)
+        pixman_region32_fini(&buf->public.dirty[i]);
+    free(buf->public.dirty);
+    free(buf);
+}
 
 static inline bool
 vk_buffer_unref_no_remove_from_chain(struct vk_buffer_private *buf) {

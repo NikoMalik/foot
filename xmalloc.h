@@ -12,7 +12,7 @@
 #define ALLOCATOR_STOCK 0
 #define ALLOCATOR_MIMALLOC 1
 #define ALLOCATOR_JEMALLOC 2
-
+void xtrim(void);
 void xfree(void *ptr);
 void *xmalloc(size_t size) XMALLOC;
 void *xcalloc(size_t nmemb, size_t size) XMALLOC;
