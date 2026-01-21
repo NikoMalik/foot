@@ -4,68 +4,62 @@
 #include "xmalloc.h"
 #include "debug.h"
 
-static void *
-check_alloc(void *alloc)
-{
+#if defined(MIMALLOC)
+#include <mimalloc.h>
+#endif
+
+static inline void *
+check_alloc(void *alloc) {
     if (unlikely(alloc == NULL)) {
         FATAL_ERROR(__func__, ENOMEM);
     }
     return alloc;
 }
 
-void *
-xmalloc(size_t size)
-{
+inline void *
+xmalloc(size_t size) {
     if (unlikely(size == 0)) {
         size = 1;
     }
     return check_alloc(malloc(size));
 }
 
-void *
-xcalloc(size_t nmemb, size_t size)
-{
+inline void *
+xcalloc(size_t nmemb, size_t size) {
     xassert(size != 0);
     return check_alloc(calloc(likely(nmemb) ? nmemb : 1, size));
 }
 
-void *
-xrealloc(void *ptr, size_t size)
-{
+inline void *
+xrealloc(void *ptr, size_t size) {
     xassert(size != 0);
     void *alloc = realloc(ptr, size);
     return check_alloc(alloc);
 }
 
-void *
-xreallocarray(void *ptr, size_t n, size_t size)
-{
+inline void *
+xreallocarray(void *ptr, size_t n, size_t size) {
     xassert(n != 0 && size != 0);
     void *alloc = reallocarray(ptr, n, size);
     return check_alloc(alloc);
 }
 
-char *
-xstrdup(const char *str)
-{
+inline char *
+xstrdup(const char *str) {
     return check_alloc(strdup(str));
 }
 
-char *
-xstrndup(const char *str, size_t n)
-{
+inline char *
+xstrndup(const char *str, size_t n) {
     return check_alloc(strndup(str, n));
 }
 
-char32_t *
-xc32dup(const char32_t *str)
-{
+inline char32_t *
+xc32dup(const char32_t *str) {
     return check_alloc(c32dup(str));
 }
 
-static VPRINTF(2) int
-xvasprintf_(char **strp, const char *format, va_list ap)
-{
+static VPRINTF(2) int xvasprintf_(char **strp, const char *format, va_list ap) {
     va_list ap2;
     va_copy(ap2, ap);
     int n = vsnprintf(NULL, 0, format, ap2);
@@ -78,16 +72,14 @@ xvasprintf_(char **strp, const char *format, va_list ap)
 }
 
 char *
-xvasprintf(const char *format, va_list ap)
-{
+xvasprintf(const char *format, va_list ap) {
     char *str;
     xvasprintf_(&str, format, ap);
     return str;
 }
 
 char *
-xasprintf(const char *format, ...)
-{
+xasprintf(const char *format, ...) {
     va_list ap;
     va_start(ap, format);
     char *str = xvasprintf(format, ap);

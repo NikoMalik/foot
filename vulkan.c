@@ -538,7 +538,7 @@ vk_buffer_create(struct vk_buffer_chain *chain, int width, int height, bool with
     }
 
     /* Clear buffer to avoid garbage on first use */
-    memset(img->public.data, 0, width * height * 4);
+    // memset(img->public.data, 0, width * height * 4);
 
     struct zwp_linux_buffer_params_v1 *params = zwp_linux_dmabuf_v1_create_params(linux_dmabuf_v1);
     zwp_linux_buffer_params_v1_add(params, img->public.fd, 0, 0, width * 4, mod >> 32, mod & 0xFFFFFFFF);

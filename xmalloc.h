@@ -9,6 +9,10 @@
 #include "char32.h"
 #include "macros.h"
 
+#define ALLOCATOR_STOCK 0
+#define ALLOCATOR_MIMALLOC 1
+#define ALLOCATOR_JEMALLOC 2
+
 void *xmalloc(size_t size) XMALLOC;
 void *xcalloc(size_t nmemb, size_t size) XMALLOC;
 void *xrealloc(void *ptr, size_t size);
@@ -20,14 +24,12 @@ char *xvasprintf(const char *format, va_list va) VPRINTF(1) XMALLOC;
 char32_t *xc32dup(const char32_t *str) XSTRDUP;
 
 static inline void *
-xmemdup(const void *ptr, size_t size)
-{
+xmemdup(const void *ptr, size_t size) {
     return memcpy(xmalloc(size), ptr, size);
 }
 
 static inline char *
-xstrjoin(const char *s1, const char *s2)
-{
+xstrjoin(const char *s1, const char *s2) {
     size_t n1 = strlen(s1);
     size_t n2 = strlen(s2);
     char *joined = xmalloc(n1 + n2 + 1);
@@ -37,8 +39,7 @@ xstrjoin(const char *s1, const char *s2)
 }
 
 static inline char *
-xstrjoin3(const char *s1, const char *s2, const char *s3)
-{
+xstrjoin3(const char *s1, const char *s2, const char *s3) {
     size_t n1 = strlen(s1);
     size_t n2 = strlen(s2);
     size_t n3 = strlen(s3);
