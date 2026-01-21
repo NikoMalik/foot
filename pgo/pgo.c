@@ -74,7 +74,7 @@ void render_refresh_icon(struct terminal *term) {}
 
 void render_overlay(struct terminal *term) {}
 
-void render_buffer_release_callback(struct buffer *buf, void *data) {}
+void render_buffer_release_callback(struct vk_buffer *buf, void *data) {}
 
 bool
 render_xcursor_is_valid(const struct seat *seat, const char *cursor)

@@ -5,7 +5,7 @@
 #include <unistd.h>
 
 #if defined(FOOT_GRAPHEME_CLUSTERING)
- #include <utf8proc.h>
+#include <utf8proc.h>
 #endif
 
 #define LOG_MODULE "vt"
@@ -83,8 +83,7 @@ static const char *const state_names[] = {
 
 #if defined(LOG_ENABLE_DBG) && LOG_ENABLE_DBG
 static const char *
-esc_as_string(struct terminal *term, uint8_t final)
-{
+esc_as_string(struct terminal *term, uint8_t final) {
     static char msg[1024];
     int c = snprintf(msg, sizeof(msg), "\\E");
 
@@ -99,25 +98,21 @@ esc_as_string(struct terminal *term, uint8_t final)
 
     snprintf(&msg[c], sizeof(msg) - c, "%c", final);
     return msg;
-
 }
 #endif
 
 static void
-action_ignore(struct terminal *term)
-{
+action_ignore(struct terminal *term) {
 }
 
 static void
-action_clear(struct terminal *term)
-{
+action_clear(struct terminal *term) {
     term->vt.params.idx = 0;
     term->vt.private = 0;
 }
 
 static void
-action_execute(struct terminal *term, uint8_t c)
-{
+action_execute(struct terminal *term, uint8_t c) {
     LOG_DBG("execute: 0x%02x", c);
     switch (c) {
 
@@ -151,8 +146,7 @@ action_execute(struct terminal *term, uint8_t c)
         else {
             /* Reverse wrap */
             if (unlikely(term->grid->cursor.point.col == 0) &&
-                likely(term->reverse_wrap && term->auto_margin))
-            {
+                likely(term->reverse_wrap && term->auto_margin)) {
                 if (term->grid->cursor.point.row <= term->scroll_region.start) {
                     /* Don't wrap past, or inside, the scrolling region(?) */
                 } else
@@ -188,8 +182,7 @@ action_execute(struct terminal *term, uint8_t c)
         /* Check if all cells from here until the next tab stop are empty */
         for (const struct cell *cell = &row->cells[start_col + 1];
              cell < &row->cells[new_col];
-             cell++)
-        {
+             cell++) {
             if (!(cell->wc == 0 || cell->wc == U' ')) {
                 emit_tab_char = false;
                 break;
@@ -208,8 +201,7 @@ action_execute(struct terminal *term, uint8_t c)
 
             for (struct cell *cell = &row->cells[start_col + 1];
                  cell < &row->cells[new_col];
-                 cell++)
-            {
+                 cell++) {
                 cell->wc = U' ';
                 cell->attrs.clean = 0;
             }
@@ -291,15 +283,13 @@ action_execute(struct terminal *term, uint8_t c)
 }
 
 static void
-action_print(struct terminal *term, uint8_t c)
-{
+action_print(struct terminal *term, uint8_t c) {
     term_reset_grapheme_state(term);
     term->ascii_printer(term, c);
 }
 
 static void
-action_param_lazy_init(struct terminal *term)
-{
+action_param_lazy_init(struct terminal *term) {
     if (term->vt.params.idx == 0) {
         struct vt_param *param = &term->vt.params.v[0];
 
@@ -312,13 +302,11 @@ action_param_lazy_init(struct terminal *term)
 }
 
 static void
-action_param_new(struct terminal *term, uint8_t c)
-{
+action_param_new(struct terminal *term, uint8_t c) {
     xassert(c == ';');
     action_param_lazy_init(term);
 
-    const size_t max_params
-        = sizeof(term->vt.params.v) / sizeof(term->vt.params.v[0]);
+    const size_t max_params = sizeof(term->vt.params.v) / sizeof(term->vt.params.v[0]);
 
     struct vt_param *param;
 
@@ -342,13 +330,11 @@ action_param_new(struct terminal *term, uint8_t c)
 }
 
 static void
-action_param_new_subparam(struct terminal *term, uint8_t c)
-{
+action_param_new_subparam(struct terminal *term, uint8_t c) {
     xassert(c == ':');
     action_param_lazy_init(term);
 
-    const size_t max_sub_params
-        = sizeof(term->vt.params.v[0].sub.value) / sizeof(term->vt.params.v[0].sub.value[0]);
+    const size_t max_sub_params = sizeof(term->vt.params.v[0].sub.value) / sizeof(term->vt.params.v[0].sub.value[0]);
 
     struct vt_param *param = term->vt.params.cur;
     unsigned *sub_param_value;
@@ -372,8 +358,7 @@ action_param_new_subparam(struct terminal *term, uint8_t c)
 }
 
 static void
-action_param(struct terminal *term, uint8_t c)
-{
+action_param(struct terminal *term, uint8_t c) {
     action_param_lazy_init(term);
     xassert(term->vt.params.cur != NULL);
 
@@ -392,8 +377,7 @@ action_param(struct terminal *term, uint8_t c)
 }
 
 static void
-action_collect(struct terminal *term, uint8_t c)
-{
+action_collect(struct terminal *term, uint8_t c) {
     LOG_DBG("collect: %c", c);
 
     /*
@@ -417,8 +401,7 @@ action_collect(struct terminal *term, uint8_t c)
         LOG_WARN("only four private/intermediate characters supported");
 }
 
-UNITTEST
-{
+UNITTEST {
     struct terminal term = {.vt = {.private = 0}};
     uint32_t expected = ' ';
     action_collect(&term, ' ');
@@ -441,8 +424,7 @@ UNITTEST
 }
 
 static void
-tab_set(struct terminal *term)
-{
+tab_set(struct terminal *term) {
     int col = term->grid->cursor.point.col;
 
     if (tll_length(term->tab_stops) == 0 || tll_back(term->tab_stops) < col) {
@@ -462,8 +444,7 @@ tab_set(struct terminal *term)
 }
 
 static void
-action_esc_dispatch(struct terminal *term, uint8_t final)
-{
+action_esc_dispatch(struct terminal *term, uint8_t final) {
     LOG_DBG("ESC: %s", esc_as_string(term, final));
 
     switch (term->vt.private) {
@@ -540,7 +521,7 @@ action_esc_dispatch(struct terminal *term, uint8_t final)
             UNHANDLED();
             break;
         }
-        break;  /* private[0] == 0 */
+        break; /* private[0] == 0 */
 
     // Designate character set
     case '(': // G0
@@ -572,7 +553,7 @@ action_esc_dispatch(struct terminal *term, uint8_t final)
 
     case '#':
         switch (final) {
-        case '8':  /* DECALN */
+        case '8': /* DECALN */
             sixel_overwrite_by_rectangle(term, 0, 0, term->rows, term->cols);
 
             term->scroll_region.start = 0;
@@ -584,26 +565,22 @@ action_esc_dispatch(struct terminal *term, uint8_t final)
             term_cursor_home(term);
             break;
         }
-        break;  /* private[0] == '#' */
-
+        break; /* private[0] == '#' */
     }
 }
 
 static void
-action_csi_dispatch(struct terminal *term, uint8_t c)
-{
+action_csi_dispatch(struct terminal *term, uint8_t c) {
     csi_dispatch(term, c);
 }
 
 static void
-action_osc_start(struct terminal *term, uint8_t c)
-{
+action_osc_start(struct terminal *term, uint8_t c) {
     term->vt.osc.idx = 0;
 }
 
 static void
-action_osc_end(struct terminal *term, uint8_t c)
-{
+action_osc_end(struct terminal *term, uint8_t c) {
     struct vt *vt = &term->vt;
 
     if (!osc_ensure_size(term, vt->osc.idx + 1))
@@ -621,69 +598,59 @@ action_osc_end(struct terminal *term, uint8_t c)
 }
 
 static void
-action_osc_put(struct terminal *term, uint8_t c)
-{
+action_osc_put(struct terminal *term, uint8_t c) {
     if (!osc_ensure_size(term, term->vt.osc.idx + 1))
         return;
     term->vt.osc.data[term->vt.osc.idx++] = c;
 }
 
 static void
-action_hook(struct terminal *term, uint8_t c)
-{
+action_hook(struct terminal *term, uint8_t c) {
     dcs_hook(term, c);
 }
 
 static void
-action_unhook(struct terminal *term, uint8_t c)
-{
+action_unhook(struct terminal *term, uint8_t c) {
     dcs_unhook(term);
 }
 
 static void
-action_put(struct terminal *term, uint8_t c)
-{
+action_put(struct terminal *term, uint8_t c) {
     dcs_put(term, c);
 }
 
 static void
-action_utf8_print(struct terminal *term, char32_t wc)
-{
+action_utf8_print(struct terminal *term, char32_t wc) {
     term_process_and_print_non_ascii(term, wc);
 }
 
 static void
-action_utf8_21(struct terminal *term, uint8_t c)
-{
+action_utf8_21(struct terminal *term, uint8_t c) {
     // wc = ((utf8[0] & 0x1f) << 6) | (utf8[1] & 0x3f)
     term->vt.utf8 = (c & 0x1f) << 6;
 }
 
 static void
-action_utf8_22(struct terminal *term, uint8_t c)
-{
+action_utf8_22(struct terminal *term, uint8_t c) {
     // wc = ((utf8[0] & 0x1f) << 6) | (utf8[1] & 0x3f)
     term->vt.utf8 |= c & 0x3f;
     action_utf8_print(term, term->vt.utf8);
 }
 
 static void
-action_utf8_31(struct terminal *term, uint8_t c)
-{
+action_utf8_31(struct terminal *term, uint8_t c) {
     // wc = ((utf8[0] & 0xf) << 12) | ((utf8[1] & 0x3f) << 6) | (utf8[2] & 0x3f)
     term->vt.utf8 = (c & 0x0f) << 12;
 }
 
 static void
-action_utf8_32(struct terminal *term, uint8_t c)
-{
+action_utf8_32(struct terminal *term, uint8_t c) {
     // wc = ((utf8[0] & 0xf) << 12) | ((utf8[1] & 0x3f) << 6) | (utf8[2] & 0x3f)
     term->vt.utf8 |= (c & 0x3f) << 6;
 }
 
 static void
-action_utf8_33(struct terminal *term, uint8_t c)
-{
+action_utf8_33(struct terminal *term, uint8_t c) {
     // wc = ((utf8[0] & 0xf) << 12) | ((utf8[1] & 0x3f) << 6) | (utf8[2] & 0x3f)
     term->vt.utf8 |= c & 0x3f;
 
@@ -700,29 +667,25 @@ action_utf8_33(struct terminal *term, uint8_t c)
 }
 
 static void
-action_utf8_41(struct terminal *term, uint8_t c)
-{
+action_utf8_41(struct terminal *term, uint8_t c) {
     // wc = ((utf8[0] & 7) << 18) | ((utf8[1] & 0x3f) << 12) | ((utf8[2] & 0x3f) << 6) | (utf8[3] & 0x3f);
     term->vt.utf8 = (c & 0x07) << 18;
 }
 
 static void
-action_utf8_42(struct terminal *term, uint8_t c)
-{
+action_utf8_42(struct terminal *term, uint8_t c) {
     // wc = ((utf8[0] & 7) << 18) | ((utf8[1] & 0x3f) << 12) | ((utf8[2] & 0x3f) << 6) | (utf8[3] & 0x3f);
     term->vt.utf8 |= (c & 0x3f) << 12;
 }
 
 static void
-action_utf8_43(struct terminal *term, uint8_t c)
-{
+action_utf8_43(struct terminal *term, uint8_t c) {
     // wc = ((utf8[0] & 7) << 18) | ((utf8[1] & 0x3f) << 12) | ((utf8[2] & 0x3f) << 6) | (utf8[3] & 0x3f);
     term->vt.utf8 |= (c & 0x3f) << 6;
 }
 
 static void
-action_utf8_44(struct terminal *term, uint8_t c)
-{
+action_utf8_44(struct terminal *term, uint8_t c) {
     // wc = ((utf8[0] & 7) << 18) | ((utf8[1] & 0x3f) << 12) | ((utf8[2] & 0x3f) << 6) | (utf8[3] & 0x3f);
     term->vt.utf8 |= c & 0x3f;
 
@@ -742,390 +705,598 @@ action_utf8_44(struct terminal *term, uint8_t c)
 IGNORE_WARNING("-Wpedantic")
 
 static enum state
-anywhere(struct terminal *term, uint8_t data)
-{
+anywhere(struct terminal *term, uint8_t data) {
     switch (data) {
         /*              exit                             current                          enter                            new state */
-    case 0x18:                                           action_execute(term, data);                                       return STATE_GROUND;
-    case 0x1a:                                           action_execute(term, data);                                       return STATE_GROUND;
-    case 0x1b:                                                                            action_clear(term);              return STATE_ESCAPE;
+    case 0x18:
+        action_execute(term, data);
+        return STATE_GROUND;
+    case 0x1a:
+        action_execute(term, data);
+        return STATE_GROUND;
+    case 0x1b:
+        action_clear(term);
+        return STATE_ESCAPE;
 
     /* 8-bit C1 control characters (not supported) */
-    case 0x80 ... 0x9f:                                                                                                    return STATE_GROUND;
+    case 0x80 ... 0x9f:
+        return STATE_GROUND;
     }
 
     return term->vt.state;
 }
 
 static enum state
-state_ground_switch(struct terminal *term, uint8_t data)
-{
-    switch (data) {
-        /*              exit                             current                          enter                            new state */
-    case 0x00 ... 0x17:
-    case 0x19:
-    case 0x1c ... 0x1f:                                  action_execute(term, data);                                       return STATE_GROUND;
-
-    /* modified from 0x20..0x7f to 0x20..0x7e, since 0x7f is DEL, which is a zero-width character */
-    case 0x20 ... 0x7e:                                  action_print(term, data);                                         return STATE_GROUND;
-
-    case 0xc2 ... 0xdf:                                  action_utf8_21(term, data);                                       return STATE_UTF8_21;
-    case 0xe0 ... 0xef:                                  action_utf8_31(term, data);                                       return STATE_UTF8_31;
-    case 0xf0 ... 0xf4:                                  action_utf8_41(term, data);                                       return STATE_UTF8_41;
-    }
-
-    return anywhere(term, data);
-}
-
-static enum state
-state_escape_switch(struct terminal *term, uint8_t data)
-{
-    switch (data) {
-        /*              exit                             current                          enter                            new state */
-    case 0x00 ... 0x17:
-    case 0x19:
-    case 0x1c ... 0x1f:                                  action_execute(term, data);                                       return STATE_ESCAPE;
-
-    case 0x20 ... 0x2f:                                  action_collect(term, data);                                       return STATE_ESCAPE_INTERMEDIATE;
-    case 0x30 ... 0x4f:                                  action_esc_dispatch(term, data);                                  return STATE_GROUND;
-    case 0x50:                                                                            action_clear(term);              return STATE_DCS_ENTRY;
-    case 0x51 ... 0x57:                                  action_esc_dispatch(term, data);                                  return STATE_GROUND;
-    case 0x58:                                                                                                             return STATE_SOS_PM_APC_STRING;
-    case 0x59:                                           action_esc_dispatch(term, data);                                  return STATE_GROUND;
-    case 0x5a:                                           action_esc_dispatch(term, data);                                  return STATE_GROUND;
-    case 0x5b:                                                                            action_clear(term);              return STATE_CSI_ENTRY;
-    case 0x5c:                                           action_esc_dispatch(term, data);                                  return STATE_GROUND;
-    case 0x5d:                                                                            action_osc_start(term, data);    return STATE_OSC_STRING;
-    case 0x5e ... 0x5f:                                                                                                    return STATE_SOS_PM_APC_STRING;
-    case 0x60 ... 0x7e:                                  action_esc_dispatch(term, data);                                  return STATE_GROUND;
-    case 0x7f:                                           action_ignore(term);                                              return STATE_ESCAPE;
-    }
-
-    return anywhere(term, data);
-}
-
-static enum state
-state_escape_intermediate_switch(struct terminal *term, uint8_t data)
-{
-    switch (data) {
-        /*              exit                             current                          enter                            new state */
-    case 0x00 ... 0x17:
-    case 0x19:
-    case 0x1c ... 0x1f:                                  action_execute(term, data);                                       return STATE_ESCAPE_INTERMEDIATE;
-
-    case 0x20 ... 0x2f:                                  action_collect(term, data);                                       return STATE_ESCAPE_INTERMEDIATE;
-    case 0x30 ... 0x7e:                                  action_esc_dispatch(term, data);                                  return STATE_GROUND;
-    case 0x7f:                                           action_ignore(term);                                              return STATE_ESCAPE_INTERMEDIATE;
-    }
-
-    return anywhere(term, data);
-}
-
-static enum state
-state_csi_entry_switch(struct terminal *term, uint8_t data)
-{
-    switch (data) {
-        /*              exit                             current                          enter                            new state */
-    case 0x00 ... 0x17:
-    case 0x19:
-    case 0x1c ... 0x1f:                                  action_execute(term, data);                                       return STATE_CSI_ENTRY;
-
-    case 0x20 ... 0x2f:                                  action_collect(term, data);                                       return STATE_CSI_INTERMEDIATE;
-    case 0x30 ... 0x39:                                  action_param(term, data);                                         return STATE_CSI_PARAM;
-    case 0x3a:                                           action_param_new_subparam(term, data);                            return STATE_CSI_PARAM;
-    case 0x3b:                                           action_param_new(term, data);                                     return STATE_CSI_PARAM;
-
-    case 0x3c ... 0x3f:                                  action_collect(term, data);                                       return STATE_CSI_PARAM;
-    case 0x40 ... 0x7e:                                  action_csi_dispatch(term, data);                                  return STATE_GROUND;
-    case 0x7f:                                           action_ignore(term);                                              return STATE_CSI_ENTRY;
-    }
-
-    return anywhere(term, data);
-}
-
-static enum state
-state_csi_param_switch(struct terminal *term, uint8_t data)
-{
-    switch (data) {
-        /*              exit                             current                          enter                            new state */
-    case 0x00 ... 0x17:
-    case 0x19:
-    case 0x1c ... 0x1f:                                  action_execute(term, data);                                       return STATE_CSI_PARAM;
-
-    case 0x20 ... 0x2f:                                  action_collect(term, data);                                       return STATE_CSI_INTERMEDIATE;
-
-    case 0x30 ... 0x39:                                  action_param(term, data);                                         return STATE_CSI_PARAM;
-    case 0x3a:                                           action_param_new_subparam(term, data);                            return STATE_CSI_PARAM;
-    case 0x3b:                                           action_param_new(term, data);                                     return STATE_CSI_PARAM;
-
-    case 0x3c ... 0x3f:                                                                                                    return STATE_CSI_IGNORE;
-    case 0x40 ... 0x7e:                                  action_csi_dispatch(term, data);                                  return STATE_GROUND;
-    case 0x7f:                                           action_ignore(term);                                              return STATE_CSI_PARAM;
-    }
-
-    return anywhere(term, data);
-}
-
-static enum state
-state_csi_intermediate_switch(struct terminal *term, uint8_t data)
-{
-    switch (data) {
-        /*              exit                             current                          enter                            new state */
-    case 0x00 ... 0x17:
-    case 0x19:
-    case 0x1c ... 0x1f:                                  action_execute(term, data);                                       return STATE_CSI_INTERMEDIATE;
-
-    case 0x20 ... 0x2f:                                  action_collect(term, data);                                       return STATE_CSI_INTERMEDIATE;
-    case 0x30 ... 0x3f:                                                                                                    return STATE_CSI_IGNORE;
-    case 0x40 ... 0x7e:                                  action_csi_dispatch(term, data);                                  return STATE_GROUND;
-    case 0x7f:                                           action_ignore(term);                                              return STATE_CSI_INTERMEDIATE;
-    }
-
-    return anywhere(term, data);
-}
-
-static enum state
-state_csi_ignore_switch(struct terminal *term, uint8_t data)
-{
-    switch (data) {
-        /*              exit                             current                          enter                            new state */
-    case 0x00 ... 0x17:
-    case 0x19:
-    case 0x1c ... 0x1f:                                  action_execute(term, data);                                       return STATE_CSI_IGNORE;
-
-    case 0x20 ... 0x3f:                                  action_ignore(term);                                              return STATE_CSI_IGNORE;
-    case 0x40 ... 0x7e:                                                                                                    return STATE_GROUND;
-    case 0x7f:                                           action_ignore(term);                                              return STATE_CSI_IGNORE;
-    }
-
-    return anywhere(term, data);
-}
-
-static enum state
-state_osc_string_switch(struct terminal *term, uint8_t data)
-{
-    switch (data) {
-        /*              exit                             current                          enter                            new state */
-
-    /* Note: original was 20-7f, but I changed to 20-ff to include utf-8. Don't forget to add EXECUTE to 8-bit C1 if we implement that. */
-    default:                                             action_osc_put(term, data);                                       return STATE_OSC_STRING;
-
-    case 0x07:          action_osc_end(term, data);                                                                        return STATE_GROUND;
-
-    case 0x00 ... 0x06:
-    case 0x08 ... 0x17:
-    case 0x19:
-    case 0x1c ... 0x1f:                                  action_ignore(term);                                              return STATE_OSC_STRING;
-
-
-    case 0x18:
-    case 0x1a:          action_osc_end(term, data);      action_execute(term, data);                                       return STATE_GROUND;
-
-    case 0x1b:          action_osc_end(term, data);      action_clear(term);                                               return STATE_ESCAPE;
-    }
-}
-
-static enum state
-state_dcs_entry_switch(struct terminal *term, uint8_t data)
-{
-    switch (data) {
-        /*              exit                             current                          enter                            new state */
-    case 0x00 ... 0x17:
-    case 0x19:
-    case 0x1c ... 0x1f:                                  action_ignore(term);                                              return STATE_DCS_ENTRY;
-
-    case 0x20 ... 0x2f:                                  action_collect(term, data);                                       return STATE_DCS_INTERMEDIATE;
-    case 0x30 ... 0x39:                                  action_param(term, data);                                         return STATE_DCS_PARAM;
-    case 0x3a:                                                                                                             return STATE_DCS_IGNORE;
-    case 0x3b:                                           action_param_new(term, data);                                     return STATE_DCS_PARAM;
-    case 0x3c ... 0x3f:                                  action_collect(term, data);                                       return STATE_DCS_PARAM;
-    case 0x40 ... 0x7e:                                                                   action_hook(term, data);         return STATE_DCS_PASSTHROUGH;
-    case 0x7f:                                           action_ignore(term);                                              return STATE_DCS_ENTRY;
-    }
-
-    return anywhere(term, data);
-}
-
-static enum state
-state_dcs_param_switch(struct terminal *term, uint8_t data)
-{
-    switch (data) {
-        /*              exit                             current                          enter                            new state */
-    case 0x00 ... 0x17:
-    case 0x19:
-    case 0x1c ... 0x1f:                                  action_ignore(term);                                              return STATE_DCS_PARAM;
-
-    case 0x20 ... 0x2f:                                  action_collect(term, data);                                       return STATE_DCS_INTERMEDIATE;
-    case 0x30 ... 0x39:                                  action_param(term, data);                                         return STATE_DCS_PARAM;
-    case 0x3a:                                                                                                             return STATE_DCS_IGNORE;
-    case 0x3b:                                           action_param_new(term, data);                                     return STATE_DCS_PARAM;
-    case 0x3c ... 0x3f:                                                                                                    return STATE_DCS_IGNORE;
-    case 0x40 ... 0x7e:                                                                   action_hook(term, data);         return STATE_DCS_PASSTHROUGH;
-    case 0x7f:                                           action_ignore(term);                                              return STATE_DCS_PARAM;
-    }
-
-    return anywhere(term, data);
-}
-
-static enum state
-state_dcs_intermediate_switch(struct terminal *term, uint8_t data)
-{
-    switch (data) {
-        /*              exit                             current                          enter                            new state */
-    case 0x00 ... 0x17:
-    case 0x19:
-    case 0x1c ... 0x1f:                                  action_ignore(term);                                              return STATE_DCS_INTERMEDIATE;
-
-    case 0x20 ... 0x2f:                                  action_collect(term, data);                                       return STATE_DCS_INTERMEDIATE;
-    case 0x30 ... 0x3f:                                                                                                    return STATE_DCS_IGNORE;
-    case 0x40 ... 0x7e:                                                                   action_hook(term, data);         return STATE_DCS_PASSTHROUGH;
-    case 0x7f:                                           action_ignore(term);                                              return STATE_DCS_INTERMEDIATE;
-    }
-
-    return anywhere(term, data);
-}
-
-static enum state
-state_dcs_ignore_switch(struct terminal *term, uint8_t data)
-{
+state_ground_switch(struct terminal *term, uint8_t data) {
     switch (data) {
         /*              exit                             current                          enter                            new state */
     case 0x00 ... 0x17:
     case 0x19:
     case 0x1c ... 0x1f:
-    case 0x20 ... 0x7f:                                  action_ignore(term);                                              return STATE_DCS_IGNORE;
+        action_execute(term, data);
+        return STATE_GROUND;
+
+    /* modified from 0x20..0x7f to 0x20..0x7e, since 0x7f is DEL, which is a zero-width character */
+    case 0x20 ... 0x7e:
+        action_print(term, data);
+        return STATE_GROUND;
+
+    case 0xc2 ... 0xdf:
+        action_utf8_21(term, data);
+        return STATE_UTF8_21;
+    case 0xe0 ... 0xef:
+        action_utf8_31(term, data);
+        return STATE_UTF8_31;
+    case 0xf0 ... 0xf4:
+        action_utf8_41(term, data);
+        return STATE_UTF8_41;
     }
 
     return anywhere(term, data);
 }
 
 static enum state
-state_dcs_passthrough_switch(struct terminal *term, uint8_t data)
-{
+state_escape_switch(struct terminal *term, uint8_t data) {
     switch (data) {
         /*              exit                             current                          enter                            new state */
     case 0x00 ... 0x17:
     case 0x19:
-    case 0x1c ... 0x7e:                                  action_put(term, data);                                           return STATE_DCS_PASSTHROUGH;
+    case 0x1c ... 0x1f:
+        action_execute(term, data);
+        return STATE_ESCAPE;
 
-    case 0x7f:                                           action_ignore(term);                                              return STATE_DCS_PASSTHROUGH;
+    case 0x20 ... 0x2f:
+        action_collect(term, data);
+        return STATE_ESCAPE_INTERMEDIATE;
+    case 0x30 ... 0x4f:
+        action_esc_dispatch(term, data);
+        return STATE_GROUND;
+    case 0x50:
+        action_clear(term);
+        return STATE_DCS_ENTRY;
+    case 0x51 ... 0x57:
+        action_esc_dispatch(term, data);
+        return STATE_GROUND;
+    case 0x58:
+        return STATE_SOS_PM_APC_STRING;
+    case 0x59:
+        action_esc_dispatch(term, data);
+        return STATE_GROUND;
+    case 0x5a:
+        action_esc_dispatch(term, data);
+        return STATE_GROUND;
+    case 0x5b:
+        action_clear(term);
+        return STATE_CSI_ENTRY;
+    case 0x5c:
+        action_esc_dispatch(term, data);
+        return STATE_GROUND;
+    case 0x5d:
+        action_osc_start(term, data);
+        return STATE_OSC_STRING;
+    case 0x5e ... 0x5f:
+        return STATE_SOS_PM_APC_STRING;
+    case 0x60 ... 0x7e:
+        action_esc_dispatch(term, data);
+        return STATE_GROUND;
+    case 0x7f:
+        action_ignore(term);
+        return STATE_ESCAPE;
+    }
+
+    return anywhere(term, data);
+}
+
+static enum state
+state_escape_intermediate_switch(struct terminal *term, uint8_t data) {
+    switch (data) {
+        /*              exit                             current                          enter                            new state */
+    case 0x00 ... 0x17:
+    case 0x19:
+    case 0x1c ... 0x1f:
+        action_execute(term, data);
+        return STATE_ESCAPE_INTERMEDIATE;
+
+    case 0x20 ... 0x2f:
+        action_collect(term, data);
+        return STATE_ESCAPE_INTERMEDIATE;
+    case 0x30 ... 0x7e:
+        action_esc_dispatch(term, data);
+        return STATE_GROUND;
+    case 0x7f:
+        action_ignore(term);
+        return STATE_ESCAPE_INTERMEDIATE;
+    }
+
+    return anywhere(term, data);
+}
+
+static enum state
+state_csi_entry_switch(struct terminal *term, uint8_t data) {
+    switch (data) {
+        /*              exit                             current                          enter                            new state */
+    case 0x00 ... 0x17:
+    case 0x19:
+    case 0x1c ... 0x1f:
+        action_execute(term, data);
+        return STATE_CSI_ENTRY;
+
+    case 0x20 ... 0x2f:
+        action_collect(term, data);
+        return STATE_CSI_INTERMEDIATE;
+    case 0x30 ... 0x39:
+        action_param(term, data);
+        return STATE_CSI_PARAM;
+    case 0x3a:
+        action_param_new_subparam(term, data);
+        return STATE_CSI_PARAM;
+    case 0x3b:
+        action_param_new(term, data);
+        return STATE_CSI_PARAM;
+
+    case 0x3c ... 0x3f:
+        action_collect(term, data);
+        return STATE_CSI_PARAM;
+    case 0x40 ... 0x7e:
+        action_csi_dispatch(term, data);
+        return STATE_GROUND;
+    case 0x7f:
+        action_ignore(term);
+        return STATE_CSI_ENTRY;
+    }
+
+    return anywhere(term, data);
+}
+
+static enum state
+state_csi_param_switch(struct terminal *term, uint8_t data) {
+    switch (data) {
+        /*              exit                             current                          enter                            new state */
+    case 0x00 ... 0x17:
+    case 0x19:
+    case 0x1c ... 0x1f:
+        action_execute(term, data);
+        return STATE_CSI_PARAM;
+
+    case 0x20 ... 0x2f:
+        action_collect(term, data);
+        return STATE_CSI_INTERMEDIATE;
+
+    case 0x30 ... 0x39:
+        action_param(term, data);
+        return STATE_CSI_PARAM;
+    case 0x3a:
+        action_param_new_subparam(term, data);
+        return STATE_CSI_PARAM;
+    case 0x3b:
+        action_param_new(term, data);
+        return STATE_CSI_PARAM;
+
+    case 0x3c ... 0x3f:
+        return STATE_CSI_IGNORE;
+    case 0x40 ... 0x7e:
+        action_csi_dispatch(term, data);
+        return STATE_GROUND;
+    case 0x7f:
+        action_ignore(term);
+        return STATE_CSI_PARAM;
+    }
+
+    return anywhere(term, data);
+}
+
+static enum state
+state_csi_intermediate_switch(struct terminal *term, uint8_t data) {
+    switch (data) {
+        /*              exit                             current                          enter                            new state */
+    case 0x00 ... 0x17:
+    case 0x19:
+    case 0x1c ... 0x1f:
+        action_execute(term, data);
+        return STATE_CSI_INTERMEDIATE;
+
+    case 0x20 ... 0x2f:
+        action_collect(term, data);
+        return STATE_CSI_INTERMEDIATE;
+    case 0x30 ... 0x3f:
+        return STATE_CSI_IGNORE;
+    case 0x40 ... 0x7e:
+        action_csi_dispatch(term, data);
+        return STATE_GROUND;
+    case 0x7f:
+        action_ignore(term);
+        return STATE_CSI_INTERMEDIATE;
+    }
+
+    return anywhere(term, data);
+}
+
+static enum state
+state_csi_ignore_switch(struct terminal *term, uint8_t data) {
+    switch (data) {
+        /*              exit                             current                          enter                            new state */
+    case 0x00 ... 0x17:
+    case 0x19:
+    case 0x1c ... 0x1f:
+        action_execute(term, data);
+        return STATE_CSI_IGNORE;
+
+    case 0x20 ... 0x3f:
+        action_ignore(term);
+        return STATE_CSI_IGNORE;
+    case 0x40 ... 0x7e:
+        return STATE_GROUND;
+    case 0x7f:
+        action_ignore(term);
+        return STATE_CSI_IGNORE;
+    }
+
+    return anywhere(term, data);
+}
+
+static enum state
+state_osc_string_switch(struct terminal *term, uint8_t data) {
+    switch (data) {
+        /*              exit                             current                          enter                            new state */
+
+    /* Note: original was 20-7f, but I changed to 20-ff to include utf-8. Don't forget to add EXECUTE to 8-bit C1 if we implement that. */
+    default:
+        action_osc_put(term, data);
+        return STATE_OSC_STRING;
+
+    case 0x07:
+        action_osc_end(term, data);
+        return STATE_GROUND;
+
+    case 0x00 ... 0x06:
+    case 0x08 ... 0x17:
+    case 0x19:
+    case 0x1c ... 0x1f:
+        action_ignore(term);
+        return STATE_OSC_STRING;
+
+    case 0x18:
+    case 0x1a:
+        action_osc_end(term, data);
+        action_execute(term, data);
+        return STATE_GROUND;
+
+    case 0x1b:
+        action_osc_end(term, data);
+        action_clear(term);
+        return STATE_ESCAPE;
+    }
+}
+
+static enum state
+state_dcs_entry_switch(struct terminal *term, uint8_t data) {
+    switch (data) {
+        /*              exit                             current                          enter                            new state */
+    case 0x00 ... 0x17:
+    case 0x19:
+    case 0x1c ... 0x1f:
+        action_ignore(term);
+        return STATE_DCS_ENTRY;
+
+    case 0x20 ... 0x2f:
+        action_collect(term, data);
+        return STATE_DCS_INTERMEDIATE;
+    case 0x30 ... 0x39:
+        action_param(term, data);
+        return STATE_DCS_PARAM;
+    case 0x3a:
+        return STATE_DCS_IGNORE;
+    case 0x3b:
+        action_param_new(term, data);
+        return STATE_DCS_PARAM;
+    case 0x3c ... 0x3f:
+        action_collect(term, data);
+        return STATE_DCS_PARAM;
+    case 0x40 ... 0x7e:
+        action_hook(term, data);
+        return STATE_DCS_PASSTHROUGH;
+    case 0x7f:
+        action_ignore(term);
+        return STATE_DCS_ENTRY;
+    }
+
+    return anywhere(term, data);
+}
+
+static enum state
+state_dcs_param_switch(struct terminal *term, uint8_t data) {
+    switch (data) {
+        /*              exit                             current                          enter                            new state */
+    case 0x00 ... 0x17:
+    case 0x19:
+    case 0x1c ... 0x1f:
+        action_ignore(term);
+        return STATE_DCS_PARAM;
+
+    case 0x20 ... 0x2f:
+        action_collect(term, data);
+        return STATE_DCS_INTERMEDIATE;
+    case 0x30 ... 0x39:
+        action_param(term, data);
+        return STATE_DCS_PARAM;
+    case 0x3a:
+        return STATE_DCS_IGNORE;
+    case 0x3b:
+        action_param_new(term, data);
+        return STATE_DCS_PARAM;
+    case 0x3c ... 0x3f:
+        return STATE_DCS_IGNORE;
+    case 0x40 ... 0x7e:
+        action_hook(term, data);
+        return STATE_DCS_PASSTHROUGH;
+    case 0x7f:
+        action_ignore(term);
+        return STATE_DCS_PARAM;
+    }
+
+    return anywhere(term, data);
+}
+
+static enum state
+state_dcs_intermediate_switch(struct terminal *term, uint8_t data) {
+    switch (data) {
+        /*              exit                             current                          enter                            new state */
+    case 0x00 ... 0x17:
+    case 0x19:
+    case 0x1c ... 0x1f:
+        action_ignore(term);
+        return STATE_DCS_INTERMEDIATE;
+
+    case 0x20 ... 0x2f:
+        action_collect(term, data);
+        return STATE_DCS_INTERMEDIATE;
+    case 0x30 ... 0x3f:
+        return STATE_DCS_IGNORE;
+    case 0x40 ... 0x7e:
+        action_hook(term, data);
+        return STATE_DCS_PASSTHROUGH;
+    case 0x7f:
+        action_ignore(term);
+        return STATE_DCS_INTERMEDIATE;
+    }
+
+    return anywhere(term, data);
+}
+
+static enum state
+state_dcs_ignore_switch(struct terminal *term, uint8_t data) {
+    switch (data) {
+        /*              exit                             current                          enter                            new state */
+    case 0x00 ... 0x17:
+    case 0x19:
+    case 0x1c ... 0x1f:
+    case 0x20 ... 0x7f:
+        action_ignore(term);
+        return STATE_DCS_IGNORE;
+    }
+
+    return anywhere(term, data);
+}
+
+static enum state
+state_dcs_passthrough_switch(struct terminal *term, uint8_t data) {
+    switch (data) {
+        /*              exit                             current                          enter                            new state */
+    case 0x00 ... 0x17:
+    case 0x19:
+    case 0x1c ... 0x7e:
+        action_put(term, data);
+        return STATE_DCS_PASSTHROUGH;
+
+    case 0x7f:
+        action_ignore(term);
+        return STATE_DCS_PASSTHROUGH;
 
     /* Anywhere */
-    case 0x18:          action_unhook(term, data);       action_execute(term, data);                                       return STATE_GROUND;
-    case 0x1a:          action_unhook(term, data);       action_execute(term, data);                                       return STATE_GROUND;
-    case 0x1b:          action_unhook(term, data);                                        action_clear(term);              return STATE_ESCAPE;
+    case 0x18:
+        action_unhook(term, data);
+        action_execute(term, data);
+        return STATE_GROUND;
+    case 0x1a:
+        action_unhook(term, data);
+        action_execute(term, data);
+        return STATE_GROUND;
+    case 0x1b:
+        action_unhook(term, data);
+        action_clear(term);
+        return STATE_ESCAPE;
 
     /* 8-bit C1 control characters (not supported) */
-    case 0x80 ... 0x9f: action_unhook(term, data);                                                                         return STATE_GROUND;
+    case 0x80 ... 0x9f:
+        action_unhook(term, data);
+        return STATE_GROUND;
 
-    default:                                                                                                               return STATE_DCS_PASSTHROUGH;
+    default:
+        return STATE_DCS_PASSTHROUGH;
     }
 }
 
 static enum state
-state_sos_pm_apc_string_switch(struct terminal *term, uint8_t data)
-{
+state_sos_pm_apc_string_switch(struct terminal *term, uint8_t data) {
     switch (data) {
         /*              exit                             current                          enter                            new state */
     case 0x00 ... 0x17:
     case 0x19:
-    case 0x1c ... 0x7f:                                  action_ignore(term);                                              return STATE_SOS_PM_APC_STRING;
+    case 0x1c ... 0x7f:
+        action_ignore(term);
+        return STATE_SOS_PM_APC_STRING;
     }
 
     return anywhere(term, data);
 }
 
 static enum state
-state_utf8_21_switch(struct terminal *term, uint8_t data)
-{
+state_utf8_21_switch(struct terminal *term, uint8_t data) {
     switch (data) {
         /*              exit                             current                          enter                            new state */
-    case 0x80 ... 0xbf:                                  action_utf8_22(term, data);                                       return STATE_GROUND;
-    default:            action_utf8_print(term, 0xfffd); return state_ground_switch(term, data);
+    case 0x80 ... 0xbf:
+        action_utf8_22(term, data);
+        return STATE_GROUND;
+    default:
+        action_utf8_print(term, 0xfffd);
+        return state_ground_switch(term, data);
     }
 }
 
 static enum state
-state_utf8_31_switch(struct terminal *term, uint8_t data)
-{
+state_utf8_31_switch(struct terminal *term, uint8_t data) {
     switch (data) {
         /*              exit                             current                          enter                            new state */
-    case 0x80 ... 0xbf:                                  action_utf8_32(term, data);                                       return STATE_UTF8_32;
-    default:            action_utf8_print(term, 0xfffd); return state_ground_switch(term, data);
+    case 0x80 ... 0xbf:
+        action_utf8_32(term, data);
+        return STATE_UTF8_32;
+    default:
+        action_utf8_print(term, 0xfffd);
+        return state_ground_switch(term, data);
     }
 }
 
 static enum state
-state_utf8_32_switch(struct terminal *term, uint8_t data)
-{
+state_utf8_32_switch(struct terminal *term, uint8_t data) {
     switch (data) {
         /*              exit                             current                          enter                            new state */
-    case 0x80 ... 0xbf:                                  action_utf8_33(term, data);                                       return STATE_GROUND;
-    default:            action_utf8_print(term, 0xfffd); return state_ground_switch(term, data);
+    case 0x80 ... 0xbf:
+        action_utf8_33(term, data);
+        return STATE_GROUND;
+    default:
+        action_utf8_print(term, 0xfffd);
+        return state_ground_switch(term, data);
     }
 }
 
 static enum state
-state_utf8_41_switch(struct terminal *term, uint8_t data)
-{
+state_utf8_41_switch(struct terminal *term, uint8_t data) {
     switch (data) {
         /*              exit                             current                          enter                            new state */
-    case 0x80 ... 0xbf:                                  action_utf8_42(term, data);                                       return STATE_UTF8_42;
-    default:            action_utf8_print(term, 0xfffd); return state_ground_switch(term, data);
+    case 0x80 ... 0xbf:
+        action_utf8_42(term, data);
+        return STATE_UTF8_42;
+    default:
+        action_utf8_print(term, 0xfffd);
+        return state_ground_switch(term, data);
     }
 }
 
 static enum state
-state_utf8_42_switch(struct terminal *term, uint8_t data)
-{
+state_utf8_42_switch(struct terminal *term, uint8_t data) {
     switch (data) {
         /*              exit                             current                          enter                            new state */
-    case 0x80 ... 0xbf:                                  action_utf8_43(term, data);                                       return STATE_UTF8_43;
-    default:            action_utf8_print(term, 0xfffd); return state_ground_switch(term, data);
+    case 0x80 ... 0xbf:
+        action_utf8_43(term, data);
+        return STATE_UTF8_43;
+    default:
+        action_utf8_print(term, 0xfffd);
+        return state_ground_switch(term, data);
     }
 }
 
 static enum state
-state_utf8_43_switch(struct terminal *term, uint8_t data)
-{
+state_utf8_43_switch(struct terminal *term, uint8_t data) {
     switch (data) {
         /*              exit                             current                          enter                            new state */
-    case 0x80 ... 0xbf:                                  action_utf8_44(term, data);                                       return STATE_GROUND;
-    default:            action_utf8_print(term, 0xfffd); return state_ground_switch(term, data);
+    case 0x80 ... 0xbf:
+        action_utf8_44(term, data);
+        return STATE_GROUND;
+    default:
+        action_utf8_print(term, 0xfffd);
+        return state_ground_switch(term, data);
     }
 }
 
 UNIGNORE_WARNINGS
 
-void
-vt_from_slave(struct terminal *term, const uint8_t *data, size_t len)
-{
+void vt_from_slave(struct terminal *term, const uint8_t *data, size_t len) {
     enum state current_state = term->vt.state;
 
     const uint8_t *p = data;
     for (size_t i = 0; i < len; i++, p++) {
         switch (current_state) {
-        case STATE_GROUND:              current_state = state_ground_switch(term, *p); break;
-        case STATE_ESCAPE:              current_state = state_escape_switch(term, *p); break;
-        case STATE_ESCAPE_INTERMEDIATE: current_state = state_escape_intermediate_switch(term, *p); break;
-        case STATE_CSI_ENTRY:           current_state = state_csi_entry_switch(term, *p); break;
-        case STATE_CSI_PARAM:           current_state = state_csi_param_switch(term, *p); break;
-        case STATE_CSI_INTERMEDIATE:    current_state = state_csi_intermediate_switch(term, *p); break;
-        case STATE_CSI_IGNORE:          current_state = state_csi_ignore_switch(term, *p); break;
-        case STATE_OSC_STRING:          current_state = state_osc_string_switch(term, *p); break;
-        case STATE_DCS_ENTRY:           current_state = state_dcs_entry_switch(term, *p); break;
-        case STATE_DCS_PARAM:           current_state = state_dcs_param_switch(term, *p); break;
-        case STATE_DCS_INTERMEDIATE:    current_state = state_dcs_intermediate_switch(term, *p); break;
-        case STATE_DCS_IGNORE:          current_state = state_dcs_ignore_switch(term, *p); break;
-        case STATE_DCS_PASSTHROUGH:     current_state = state_dcs_passthrough_switch(term, *p); break;
-        case STATE_SOS_PM_APC_STRING:   current_state = state_sos_pm_apc_string_switch(term, *p); break;
+        case STATE_GROUND:
+            current_state = state_ground_switch(term, *p);
+            break;
+        case STATE_ESCAPE:
+            current_state = state_escape_switch(term, *p);
+            break;
+        case STATE_ESCAPE_INTERMEDIATE:
+            current_state = state_escape_intermediate_switch(term, *p);
+            break;
+        case STATE_CSI_ENTRY:
+            current_state = state_csi_entry_switch(term, *p);
+            break;
+        case STATE_CSI_PARAM:
+            current_state = state_csi_param_switch(term, *p);
+            break;
+        case STATE_CSI_INTERMEDIATE:
+            current_state = state_csi_intermediate_switch(term, *p);
+            break;
+        case STATE_CSI_IGNORE:
+            current_state = state_csi_ignore_switch(term, *p);
+            break;
+        case STATE_OSC_STRING:
+            current_state = state_osc_string_switch(term, *p);
+            break;
+        case STATE_DCS_ENTRY:
+            current_state = state_dcs_entry_switch(term, *p);
+            break;
+        case STATE_DCS_PARAM:
+            current_state = state_dcs_param_switch(term, *p);
+            break;
+        case STATE_DCS_INTERMEDIATE:
+            current_state = state_dcs_intermediate_switch(term, *p);
+            break;
+        case STATE_DCS_IGNORE:
+            current_state = state_dcs_ignore_switch(term, *p);
+            break;
+        case STATE_DCS_PASSTHROUGH:
+            current_state = state_dcs_passthrough_switch(term, *p);
+            break;
+        case STATE_SOS_PM_APC_STRING:
+            current_state = state_sos_pm_apc_string_switch(term, *p);
+            break;
 
-        case STATE_UTF8_21:             current_state = state_utf8_21_switch(term, *p); break;
-        case STATE_UTF8_31:             current_state = state_utf8_31_switch(term, *p); break;
-        case STATE_UTF8_32:             current_state = state_utf8_32_switch(term, *p); break;
-        case STATE_UTF8_41:             current_state = state_utf8_41_switch(term, *p); break;
-        case STATE_UTF8_42:             current_state = state_utf8_42_switch(term, *p); break;
-        case STATE_UTF8_43:             current_state = state_utf8_43_switch(term, *p); break;
+        case STATE_UTF8_21:
+            current_state = state_utf8_21_switch(term, *p);
+            break;
+        case STATE_UTF8_31:
+            current_state = state_utf8_31_switch(term, *p);
+            break;
+        case STATE_UTF8_32:
+            current_state = state_utf8_32_switch(term, *p);
+            break;
+        case STATE_UTF8_41:
+            current_state = state_utf8_41_switch(term, *p);
+            break;
+        case STATE_UTF8_42:
+            current_state = state_utf8_42_switch(term, *p);
+            break;
+        case STATE_UTF8_43:
+            current_state = state_utf8_43_switch(term, *p);
+            break;
         }
 
         term->vt.state = current_state;

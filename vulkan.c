@@ -1,6 +1,7 @@
 #include <assert.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 #include <sys/types.h>
 #include <sys/sysmacros.h>
 #include <vulkan/vulkan.h>
@@ -89,7 +90,7 @@ void vulkan_destroy(struct vulkan *vk) {
         vkDestroyDevice(vk->device, NULL);
     if (vk->instance)
         vkDestroyInstance(vk->instance, NULL);
-    free(vk);
+    xfree(vk);
 }
 
 struct vulkan *
@@ -255,6 +256,9 @@ struct vk_buffer_private {
     struct vulkan *vk;
     VkBuffer buffer;
     VkDeviceMemory memory;
+
+    void (*release_cb)(struct vk_buffer *buf, void *data);
+    void *cb_data;
 };
 
 // static inline void
@@ -263,12 +267,12 @@ struct vk_buffer_private {
 //         for (size_t i = 0; i < img->public.pix_instances; i++)
 //             if (img->public.pix[i] != NULL)
 //                 pixman_image_unref(img->public.pix[i]);
-//         free(img->public.pix);
+//         xfree(img->public.pix);
 //     }
 //     if (img->public.dirty) {
 //         for (size_t i = 0; i < img->public.pix_instances; i++)
 //             pixman_region32_fini(&img->public.dirty[i]);
-//         free(img->public.dirty);
+//         xfree(img->public.dirty);
 //     }
 //     if (img->public.wl_buf)
 //         wl_buffer_destroy(img->public.wl_buf);
@@ -280,7 +284,7 @@ struct vk_buffer_private {
 //         vkFreeMemory(img->vk->device, img->memory, NULL);
 //     if (img->buffer)
 //         vkDestroyBuffer(img->vk->device, img->buffer, NULL);
-//     free(img);
+//     xfree(img);
 // }
 
 inline static void
@@ -290,7 +294,7 @@ vk_buffer_destroy_dont_close(struct vk_buffer *buf) {
             if (buf->pix[i] != NULL)
                 pixman_image_unref(buf->pix[i]);
 
-    free(buf->pix);
+    xfree(buf->pix);
     buf->pix = NULL;
 }
 
@@ -300,8 +304,8 @@ vk_buffer_destroy(struct vk_buffer_private *buf) {
 
     for (size_t i = 0; i < buf->public.pix_instances; i++)
         pixman_region32_fini(&buf->public.dirty[i]);
-    free(buf->public.dirty);
-    free(buf);
+    xfree(buf->public.dirty);
+    xfree(buf);
 }
 
 static inline bool
@@ -324,6 +328,8 @@ struct vk_buffer_chain {
     struct vulkan *vk;
     struct zwp_linux_dmabuf_v1 *linux_dmabuf_v1;
     size_t pix_instances;
+    void (*release_cb)(struct vk_buffer *buf, void *data);
+    void *cb_data;
 };
 
 void vk_purge(struct vk_buffer_chain *chain) {
@@ -334,18 +340,20 @@ void vk_purge(struct vk_buffer_chain *chain) {
         if (vk_buffer_unref_no_remove_from_chain(it->item))
             tll_remove(chain->bufs, it);
     }
+    xtrim();
 }
 
-enum shm_bit_depth inline vk_chain_bit_depth(const struct vk_buffer_chain *chain) {
+enum shm_bit_depth vk_chain_bit_depth(const struct vk_buffer_chain *chain) {
     /* Vulkan buffers use DRM_FORMAT_ARGB8888 (8 bits per channel) */
     return SHM_BITS_8;
 }
 
-inline bool vk_can_scroll(const struct vk_buffer *_buf) {
+bool vk_can_scroll(const struct vk_buffer *_buf) {
+    /* Disable scroll optimization for now - needs proper implementation */
     return false;
 }
 
-inline bool vk_scroll(struct vk_buffer *_buf, int rows, int top_margin, int top_keep_rows, int bottom_margin, int bottom_keep_rows) {
+bool vk_scroll(struct vk_buffer *buf, int rows, int top_margin, int top_keep_rows, int bottom_margin, int bottom_keep_rows) {
     return false;
 }
 
@@ -361,24 +369,43 @@ void vk_unref(struct vk_buffer *_buf) {
     struct vk_buffer_private *buf = (struct vk_buffer_private *)_buf;
     struct vk_buffer_chain *chain = buf->chain;
 
+    /* First check in chain->bufs */
     tll_foreach(chain->bufs, it) {
         if (it->item != buf)
             continue;
 
         if (vk_buffer_unref_no_remove_from_chain(buf))
             tll_remove(chain->bufs, it);
-        break;
+        return;
+    }
+
+    /* Buffer might be in vk_deferred (removed from chain due to resize) */
+    tll_foreach(vk_deferred, it) {
+        if (it->item != buf)
+            continue;
+
+        xassert(buf->ref_count > 0);
+        buf->ref_count--;
+
+        if (buf->ref_count == 0 && !buf->busy) {
+            tll_remove(vk_deferred, it);
+            vk_buffer_destroy(buf);
+        }
+        return;
     }
 }
 
 struct vk_buffer_chain *
-vk_chain_new(struct vulkan *vk, struct zwp_linux_dmabuf_v1 *linux_dmabuf_v1, bool _scrollable, size_t pix_instances) {
+vk_chain_new(struct vulkan *vk, struct zwp_linux_dmabuf_v1 *linux_dmabuf_v1, bool _scrollable, size_t pix_instances,
+             void (*release_cb)(struct vk_buffer *buf, void *data), void *cb_data) {
     struct vk_buffer_chain *chain = xmalloc(sizeof(*chain));
     *chain = (struct vk_buffer_chain){
         .bufs = tll_init(),
         .vk = vk,
         .linux_dmabuf_v1 = linux_dmabuf_v1,
         .pix_instances = pix_instances,
+        .release_cb = release_cb,
+        .cb_data = cb_data,
     };
     return chain;
 }
@@ -394,7 +421,7 @@ void vk_chain_free(struct vk_buffer_chain *chain) {
             "is there a missing call to vk_unref()?",
             (void *)chain);
 
-    free(chain);
+    xfree(chain);
 }
 
 static void
@@ -403,7 +430,7 @@ vulkan_image_destroy(struct vk_buffer_private *img) {
         for (size_t i = 0; i < img->public.pix_instances; i++)
             if (img->public.pix[i] != NULL)
                 pixman_image_unref(img->public.pix[i]);
-        free(img->public.pix);
+        xfree(img->public.pix);
     }
     if (img->public.data)
         vkUnmapMemory(img->vk->device, img->memory);
@@ -413,7 +440,7 @@ vulkan_image_destroy(struct vk_buffer_private *img) {
         vkFreeMemory(img->vk->device, img->memory, NULL);
     if (img->buffer)
         vkDestroyBuffer(img->vk->device, img->buffer, NULL);
-    free(img);
+    xfree(img);
 }
 
 static void
@@ -441,6 +468,10 @@ buffer_release(void *data, struct wl_buffer *wl_buffer) {
         xassert(found);
         if (!found)
             LOG_WARN("deferred delete: buffer not on the 'deferred' list");
+    } else {
+        /* Buffer still referenced - call release callback for preapply damage */
+        if (buffer->release_cb != NULL)
+            buffer->release_cb(&buffer->public, buffer->cb_data);
     }
 }
 
@@ -453,6 +484,9 @@ vk_buffer_create(struct vk_buffer_chain *chain, int width, int height, bool with
     struct vulkan *vk = chain->vk;
     struct zwp_linux_dmabuf_v1 *linux_dmabuf_v1 = chain->linux_dmabuf_v1;
 
+    /* Align stride to 64 bytes for GPU compatibility */
+    const int stride = (width * 4 + 63) & ~63;
+
     struct vk_buffer_private *img = xmalloc(sizeof(*img));
     *img = (struct vk_buffer_private){
         .vk = vk,
@@ -460,7 +494,7 @@ vk_buffer_create(struct vk_buffer_chain *chain, int width, int height, bool with
             .fd = -1,
             .width = width,
             .height = height,
-            .stride = width * 4,
+            .stride = stride,
         },
     };
 
@@ -474,7 +508,7 @@ vk_buffer_create(struct vk_buffer_chain *chain, int width, int height, bool with
     VkBufferCreateInfo buf_create = {
         .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
         .pNext = &ext_mem,
-        .size = width * height * 4,
+        .size = stride * height,
         .usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
         .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
     };
@@ -495,7 +529,8 @@ vk_buffer_create(struct vk_buffer_chain *chain, int width, int height, bool with
     // The flags we need:
     // - HOST_VISIBLE in order to CPU map the buffer
     // - HOST_COHERENT as we otherwise need to call vkFlushMappedMemoryRanges after a write
-    // - HOST_CACHED in order to have decent CPU access performancea
+    // - HOST_CACHED in order to have decent CPU access performance ->
+    // glitch and corruption issues
     int mem_type_index = vulkan_find_mem_type(vk,
                                               VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
                                               mem_reqs.memoryTypeBits);
@@ -541,7 +576,7 @@ vk_buffer_create(struct vk_buffer_chain *chain, int width, int height, bool with
     // memset(img->public.data, 0, width * height * 4);
 
     struct zwp_linux_buffer_params_v1 *params = zwp_linux_dmabuf_v1_create_params(linux_dmabuf_v1);
-    zwp_linux_buffer_params_v1_add(params, img->public.fd, 0, 0, width * 4, mod >> 32, mod & 0xFFFFFFFF);
+    zwp_linux_buffer_params_v1_add(params, img->public.fd, 0, 0, img->public.stride, mod >> 32, mod & 0xFFFFFFFF);
     img->public.wl_buf = zwp_linux_buffer_params_v1_create_immed(params, width, height,
                                                                  with_alpha ? DRM_FORMAT_ARGB8888 : DRM_FORMAT_XRGB8888, 0);
     zwp_linux_buffer_params_v1_destroy(params);
@@ -559,6 +594,8 @@ vk_buffer_create(struct vk_buffer_chain *chain, int width, int height, bool with
     img->ref_count = immediate_purge ? 0 : 1;
     img->busy = true;
     img->with_alpha = with_alpha;
+    img->release_cb = chain->release_cb;
+    img->cb_data = chain->cb_data;
 
     img->public.pix = xcalloc(img->public.pix_instances, sizeof(*img->public.pix));
 
@@ -604,8 +641,8 @@ vk_get_buffer(struct vk_buffer_chain *chain, int width, int height, bool with_al
         if (buf->public.width != width || buf->public.height != height ||
             with_alpha != buf->with_alpha) {
             LOG_DBG("purging mismatching buffer %p", (void *)buf);
-            if (vk_buffer_unref_no_remove_from_chain(buf))
-                tll_remove(chain->bufs, it);
+            vk_buffer_unref_no_remove_from_chain(buf);
+            tll_remove(chain->bufs, it);
             continue;
         }
 
@@ -624,8 +661,8 @@ vk_get_buffer(struct vk_buffer_chain *chain, int width, int height, bool with_al
                 vk_unref(&cached->public);
                 cached = buf;
             } else {
-                if (vk_buffer_unref_no_remove_from_chain(buf))
-                    tll_remove(chain->bufs, it);
+                vk_buffer_unref_no_remove_from_chain(buf);
+                tll_remove(chain->bufs, it);
             }
         }
     }
@@ -648,7 +685,7 @@ void vk_did_not_use_buf(struct vk_buffer *_buf) {
     buf->busy = false;
 }
 
-void vk_get_many(
+inline void vk_get_many(
     struct vk_buffer_chain *chain, size_t count,
     int widths[static count], int heights[static count],
     struct vk_buffer *bufs[static count], bool with_alpha) {

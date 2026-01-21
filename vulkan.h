@@ -48,7 +48,8 @@ struct vk_buffer {
 
 struct vk_buffer_chain;
 
-struct vk_buffer_chain *vk_chain_new(struct vulkan *vk, struct zwp_linux_dmabuf_v1 *linux_dmabuf_v1, bool scrollable, size_t pix_instances);
+struct vk_buffer_chain *vk_chain_new(struct vulkan *vk, struct zwp_linux_dmabuf_v1 *linux_dmabuf_v1, bool scrollable, size_t pix_instances,
+                                     void (*release_cb)(struct vk_buffer *buf, void *data), void *cb_data);
 void vk_chain_free(struct vk_buffer_chain *chain);
 
 struct vk_buffer *vk_get_buffer(struct vk_buffer_chain *chain, int wdth, int height, bool with_alpha);

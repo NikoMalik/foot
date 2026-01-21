@@ -22,8 +22,7 @@
 #include <stdio.h>
 
 static const char *
-sigabbrev_np(int sig)
-{
+sigabbrev_np(int sig) {
     static char buf[16];
     snprintf(buf, sizeof(buf), "<%d>", sig);
     return buf;
@@ -68,8 +67,7 @@ static volatile sig_atomic_t got_signal = false;
 static volatile sig_atomic_t *received_signals = NULL;
 
 struct fdm *
-fdm_init(void)
-{
+fdm_init(void) {
     sigset_t sigmask;
     if (sigprocmask(0, NULL, &sigmask) < 0) {
         LOG_ERRNO("failed to get process signal mask");
@@ -114,9 +112,7 @@ fdm_init(void)
     return fdm;
 }
 
-void
-fdm_destroy(struct fdm *fdm)
-{
+void fdm_destroy(struct fdm *fdm) {
     if (fdm == NULL)
         return;
 
@@ -131,8 +127,7 @@ fdm_destroy(struct fdm *fdm)
 
     if (tll_length(fdm->hooks_low) > 0 ||
         tll_length(fdm->hooks_normal) > 0 ||
-        tll_length(fdm->hooks_high) > 0)
-    {
+        tll_length(fdm->hooks_high) > 0) {
         LOG_WARN("hook list not empty");
     }
 
@@ -157,9 +152,7 @@ fdm_destroy(struct fdm *fdm)
     received_signals = NULL;
 }
 
-bool
-fdm_add(struct fdm *fdm, int fd, int events, fdm_fd_handler_t cb, void *data)
-{
+bool fdm_add(struct fdm *fdm, int fd, int events, fdm_fd_handler_t cb, void *data) {
 #if defined(_DEBUG)
     tll_foreach(fdm->fds, it) {
         if (it->item->fd == fd) {
@@ -174,7 +167,7 @@ fdm_add(struct fdm *fdm, int fd, int events, fdm_fd_handler_t cb, void *data)
         return false;
     }
 
-    *handler = (struct fd_handler) {
+    *handler = (struct fd_handler){
         .fd = fd,
         .events = events,
         .callback = cb,
@@ -200,8 +193,7 @@ fdm_add(struct fdm *fdm, int fd, int events, fdm_fd_handler_t cb, void *data)
 }
 
 static bool
-fdm_del_internal(struct fdm *fdm, int fd, bool close_fd)
-{
+fdm_del_internal(struct fdm *fdm, int fd, bool close_fd) {
     if (fd == -1)
         return true;
 
@@ -230,21 +222,16 @@ fdm_del_internal(struct fdm *fdm, int fd, bool close_fd)
     return false;
 }
 
-bool
-fdm_del(struct fdm *fdm, int fd)
-{
+bool fdm_del(struct fdm *fdm, int fd) {
     return fdm_del_internal(fdm, fd, true);
 }
 
-bool
-fdm_del_no_close(struct fdm *fdm, int fd)
-{
+bool fdm_del_no_close(struct fdm *fdm, int fd) {
     return fdm_del_internal(fdm, fd, false);
 }
 
 static bool
-event_modify(struct fdm *fdm, struct fd_handler *fd, int new_events)
-{
+event_modify(struct fdm *fdm, struct fd_handler *fd, int new_events) {
     if (new_events == fd->events)
         return true;
 
@@ -263,9 +250,7 @@ event_modify(struct fdm *fdm, struct fd_handler *fd, int new_events)
     return true;
 }
 
-bool
-fdm_event_add(struct fdm *fdm, int fd, int events)
-{
+bool fdm_event_add(struct fdm *fdm, int fd, int events) {
     tll_foreach(fdm->fds, it) {
         if (it->item->fd != fd)
             continue;
@@ -277,9 +262,7 @@ fdm_event_add(struct fdm *fdm, int fd, int events)
     return false;
 }
 
-bool
-fdm_event_del(struct fdm *fdm, int fd, int events)
-{
+bool fdm_event_del(struct fdm *fdm, int fd, int events) {
     tll_foreach(fdm->fds, it) {
         if (it->item->fd != fd)
             continue;
@@ -292,22 +275,22 @@ fdm_event_del(struct fdm *fdm, int fd, int events)
 }
 
 static hooks_t *
-hook_priority_to_list(struct fdm *fdm, enum fdm_hook_priority priority)
-{
+hook_priority_to_list(struct fdm *fdm, enum fdm_hook_priority priority) {
     switch (priority) {
-    case FDM_HOOK_PRIORITY_LOW:    return &fdm->hooks_low;
-    case FDM_HOOK_PRIORITY_NORMAL: return &fdm->hooks_normal;
-    case FDM_HOOK_PRIORITY_HIGH:   return &fdm->hooks_high;
+    case FDM_HOOK_PRIORITY_LOW:
+        return &fdm->hooks_low;
+    case FDM_HOOK_PRIORITY_NORMAL:
+        return &fdm->hooks_normal;
+    case FDM_HOOK_PRIORITY_HIGH:
+        return &fdm->hooks_high;
     }
 
     BUG("unhandled priority type");
     return NULL;
 }
 
-bool
-fdm_hook_add(struct fdm *fdm, fdm_hook_t hook, void *data,
-             enum fdm_hook_priority priority)
-{
+bool fdm_hook_add(struct fdm *fdm, fdm_hook_t hook, void *data,
+                  enum fdm_hook_priority priority) {
     hooks_t *hooks = hook_priority_to_list(fdm, priority);
 
 #if defined(_DEBUG)
@@ -323,9 +306,7 @@ fdm_hook_add(struct fdm *fdm, fdm_hook_t hook, void *data,
     return true;
 }
 
-bool
-fdm_hook_del(struct fdm *fdm, fdm_hook_t hook, enum fdm_hook_priority priority)
-{
+bool fdm_hook_del(struct fdm *fdm, fdm_hook_t hook, enum fdm_hook_priority priority) {
     hooks_t *hooks = hook_priority_to_list(fdm, priority);
 
     tll_foreach(*hooks, it) {
@@ -341,15 +322,12 @@ fdm_hook_del(struct fdm *fdm, fdm_hook_t hook, enum fdm_hook_priority priority)
 }
 
 static void
-signal_handler(int signo)
-{
+signal_handler(int signo) {
     got_signal = true;
     received_signals[signo] = true;
 }
 
-bool
-fdm_signal_add(struct fdm *fdm, int signo, fdm_signal_handler_t handler, void *data)
-{
+bool fdm_signal_add(struct fdm *fdm, int signo, fdm_signal_handler_t handler, void *data) {
     if (fdm->signal_handlers[signo].callback != NULL) {
         LOG_ERR("signal %d (SIG%s) already has a handler",
                 signo, sigabbrev_np(signo));
@@ -381,9 +359,7 @@ fdm_signal_add(struct fdm *fdm, int signo, fdm_signal_handler_t handler, void *d
     return true;
 }
 
-bool
-fdm_signal_del(struct fdm *fdm, int signo)
-{
+bool fdm_signal_del(struct fdm *fdm, int signo) {
     if (fdm->signal_handlers[signo].callback == NULL)
         return false;
 
@@ -411,9 +387,7 @@ fdm_signal_del(struct fdm *fdm, int signo)
     return true;
 }
 
-bool
-fdm_poll(struct fdm *fdm)
-{
+bool fdm_poll(struct fdm *fdm) {
     xassert(!fdm->is_polling && "nested calls to fdm_poll() not allowed");
     if (fdm->is_polling) {
         LOG_ERR("nested calls to fdm_poll() not allowed");
@@ -422,7 +396,7 @@ fdm_poll(struct fdm *fdm)
 
     tll_foreach(fdm->hooks_high, it) {
         LOG_DBG(
-            "executing high priority hook 0x%" PRIxPTR" (fdm=%p, data=%p)",
+            "executing high priority hook 0x%" PRIxPTR " (fdm=%p, data=%p)",
             (uintptr_t)it->item.callback, (void *)fdm,
             (void *)it->item.callback_data);
         it->item.callback(fdm, it->item.callback_data);
