@@ -22,9 +22,11 @@
 #include <xdg-shell.h>
 #include <xdg-system-bell-v1.h>
 #include <xdg-toplevel-icon-v1.h>
+#include <sys/types.h>
+#include <linux-dmabuf-v1.h>
 
 #if defined(HAVE_XDG_TOPLEVEL_TAG)
- #include <xdg-toplevel-tag-v1.h>
+#include <xdg-toplevel-tag-v1.h>
 #endif
 
 #include <fcft/fcft.h>
@@ -36,7 +38,7 @@
 
 /* Forward declarations */
 struct terminal;
-struct buffer;
+struct vk_buffer;
 
 /* Mime-types we support when dealing with data offers (e.g. copy-paste, or DnD) */
 enum data_offer_mime_type {
@@ -71,7 +73,7 @@ struct wayl_sub_surface {
 
 struct wl_window;
 struct wl_clipboard {
-    struct wl_window *window;  /* For DnD */
+    struct wl_window *window; /* For DnD */
     struct wl_data_source *data_source;
     struct wl_data_offer *data_offer;
     enum data_offer_mime_type mime_type;
@@ -90,8 +92,8 @@ struct wl_primary {
 /* Maps a mouse button to its "owning" surface */
 struct button_tracker {
     int button;
-    int surf_kind;  /* TODO: this is really an "enum term_surface" */
-    bool send_to_client;  /* Only valid when surface is the main grid surface */
+    int surf_kind;       /* TODO: this is really an "enum term_surface" */
+    bool send_to_client; /* Only valid when surface is the main grid surface */
 };
 
 struct rect {
@@ -138,10 +140,10 @@ struct seat {
         xkb_mod_index_t mod_caps;
         xkb_mod_index_t mod_num;
 
-        xkb_mod_mask_t legacy_significant;  /* Significant modifiers for the legacy keyboard protocol */
-        xkb_mod_mask_t kitty_significant;   /* Significant modifiers for the kitty keyboard protocol */
+        xkb_mod_mask_t legacy_significant; /* Significant modifiers for the legacy keyboard protocol */
+        xkb_mod_mask_t kitty_significant;  /* Significant modifiers for the kitty keyboard protocol */
 
-        xkb_mod_mask_t virtual_modifiers;   /* Set of modifiers to completely ignore */
+        xkb_mod_mask_t virtual_modifiers; /* Set of modifiers to completely ignore */
 
         xkb_keycode_t key_arrow_up;
         xkb_keycode_t key_arrow_down;
@@ -235,12 +237,12 @@ struct seat {
             int count;
             struct {
                 bool hidden;
-                int start;  /* Cell index, inclusive */
-                int end;    /* Cell index, exclusive */
+                int start; /* Cell index, inclusive */
+                int end;   /* Cell index, exclusive */
             } cursor;
         } preedit;
 
-        struct  {
+        struct {
             struct {
                 char *text;
             } pending;
@@ -331,7 +333,7 @@ struct monitor {
     char *name;
     char *description;
 
-    float inch;  /* e.g. 24" */
+    float inch; /* e.g. 24" */
 
     bool use_output_release;
 };
@@ -341,7 +343,9 @@ struct wl_url {
     struct wayl_sub_surface surf;
 };
 
-enum csd_mode {CSD_UNKNOWN, CSD_NO, CSD_YES};
+enum csd_mode { CSD_UNKNOWN,
+                CSD_NO,
+                CSD_YES };
 
 typedef void (*activation_token_cb_t)(const char *token, void *data);
 
@@ -351,10 +355,10 @@ typedef void (*activation_token_cb_t)(const char *token, void *data);
  * wayl_win_destroy().
  */
 struct xdg_activation_token_context {
-    struct wl_window *win;                        /* Need for win->xdg_tokens */
-    struct xdg_activation_token_v1 *xdg_token;    /* Used to match token in done() */
-    activation_token_cb_t cb;                     /* User provided callback */
-    void *cb_data;                                /* Callback user pointer */
+    struct wl_window *win;                     /* Need for win->xdg_tokens */
+    struct xdg_activation_token_v1 *xdg_token; /* Used to match token in done() */
+    activation_token_cb_t cb;                  /* User provided callback */
+    void *cb_data;                             /* Callback user pointer */
 };
 
 struct wayland;
@@ -384,8 +388,8 @@ struct wl_window {
     } csd;
 
     struct {
-        bool maximize:1;
-        bool minimize:1;
+        bool maximize : 1;
+        bool minimize : 1;
     } wm_capabilities;
 
     struct wayl_sub_surface search;
@@ -406,7 +410,7 @@ struct wl_window {
     bool is_tiled_bottom;
     bool is_tiled_left;
     bool is_tiled_right;
-    bool is_tiled;  /* At least one of is_tiled_{top,bottom,left,right} is true */
+    bool is_tiled; /* At least one of is_tiled_{top,bottom,left,right} is true */
 
     bool is_constrained_top;
     bool is_constrained_bottom;
@@ -416,20 +420,20 @@ struct wl_window {
     struct {
         int width;
         int height;
-        bool is_activated:1;
-        bool is_fullscreen:1;
-        bool is_maximized:1;
-        bool is_resizing:1;
+        bool is_activated : 1;
+        bool is_fullscreen : 1;
+        bool is_maximized : 1;
+        bool is_resizing : 1;
 
-        bool is_tiled_top:1;
-        bool is_tiled_bottom:1;
-        bool is_tiled_left:1;
-        bool is_tiled_right:1;
+        bool is_tiled_top : 1;
+        bool is_tiled_bottom : 1;
+        bool is_tiled_left : 1;
+        bool is_tiled_right : 1;
 
-        bool is_constrained_top:1;
-        bool is_constrained_bottom:1;
-        bool is_constrained_left:1;
-        bool is_constrained_right:1;
+        bool is_constrained_top : 1;
+        bool is_constrained_bottom : 1;
+        bool is_constrained_left : 1;
+        bool is_constrained_right : 1;
 
         enum csd_mode csd_mode;
     } configure;
@@ -485,6 +489,8 @@ struct wayland {
     struct wp_presentation *presentation;
     uint32_t presentation_clock_id;
 
+    struct zwp_linux_dmabuf_v1 *linux_dmabuf;
+
 #if defined(HAVE_XDG_TOPLEVEL_TAG)
     struct xdg_toplevel_tag_manager_v1 *toplevel_tag_manager;
 #endif
@@ -493,7 +499,7 @@ struct wayland {
     struct zwp_text_input_manager_v3 *text_input_manager;
 #endif
 
-    tll(struct monitor) monitors;  /* All available outputs */
+    tll(struct monitor) monitors; /* All available outputs */
     tll(struct seat) seats;
 
     tll(struct terminal *) terms;
@@ -501,9 +507,12 @@ struct wayland {
     /* WL_SHM >= 2 */
     bool use_shm_release;
 
-    bool shm_have_argb2101010:1;
-    bool shm_have_abgr2101010:1;
-    bool shm_have_abgr161616:1;
+    struct vulkan *vk;
+    dev_t preferred_device;
+
+    bool shm_have_argb2101010 : 1;
+    bool shm_have_abgr2101010 : 1;
+    bool shm_have_abgr161616 : 1;
 };
 
 struct wayland *wayl_init(
@@ -519,7 +528,7 @@ void wayl_roundtrip(struct wayland *wayl);
 bool wayl_fractional_scaling(const struct wayland *wayl);
 void wayl_surface_scale(
     const struct wl_window *win, const struct wayl_surface *surf,
-    const struct buffer *buf, float scale);
+    const struct vk_buffer *buf, float scale);
 void wayl_surface_scale_explicit_width_height(
     const struct wl_window *win, const struct wayl_surface *surf,
     int width, int height, float scale);
@@ -527,7 +536,7 @@ void wayl_surface_scale_explicit_width_height(
 struct wl_window *wayl_win_init(struct terminal *term, const char *token);
 void wayl_win_destroy(struct wl_window *win);
 
-void wayl_win_scale(struct wl_window *win, const struct buffer *buf);
+void wayl_win_scale(struct wl_window *win, const struct vk_buffer *buf);
 void wayl_win_alpha_changed(struct wl_window *win);
 bool wayl_win_set_urgent(struct wl_window *win);
 bool wayl_win_ring_bell(const struct wl_window *win);

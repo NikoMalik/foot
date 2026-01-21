@@ -146,6 +146,8 @@ wayland_cursor = dependency('wayland-cursor')
 xkb = dependency('xkbcommon', version: '>=1.0.0')
 fontconfig = dependency('fontconfig')
 utf8proc = dependency('libutf8proc', required: get_option('grapheme-clustering'))
+vulkan = dependency('vulkan')
+drm = dependency('libdrm').partial_dependency(compile_args: true, includes: true)
 
 if utf8proc.found()
   add_project_arguments('-DFOOT_GRAPHEME_CLUSTERING=1', language: 'c')
@@ -179,6 +181,7 @@ wl_proto_xml = [
   wayland_protocols_datadir / 'unstable/tablet/tablet-unstable-v2.xml',  # required by cursor-shape-v1
   wayland_protocols_datadir / 'staging/cursor-shape/cursor-shape-v1.xml',
   wayland_protocols_datadir / 'staging/single-pixel-buffer/single-pixel-buffer-v1.xml',
+  wayland_protocols_datadir / 'stable/linux-dmabuf/linux-dmabuf-v1.xml',
   wayland_protocols_datadir / 'staging/xdg-toplevel-icon/xdg-toplevel-icon-v1.xml',
   wayland_protocols_datadir / 'staging/xdg-system-bell/xdg-system-bell-v1.xml',
   wayland_protocols_datadir / 'staging/color-management/color-management-v1.xml',
@@ -323,6 +326,7 @@ executable(
   'search.c', 'search.h',
   'server.c', 'server.h', 'client-protocol.h',
   'shm.c', 'shm.h',
+  'vulkan.c', 'vulkan.h',
   'slave.c', 'slave.h',
   'spawn.c', 'spawn.h',
   'tokenize.c', 'tokenize.h',
@@ -333,7 +337,7 @@ executable(
   'xkbcommon-vmod.h',
   srgb_funcs, wl_proto_src + wl_proto_headers, version,
   dependencies: [math, threads, libepoll, pixman, wayland_client, wayland_cursor, xkb, fontconfig, utf8proc,
-                 tllist, fcft],
+                 tllist, fcft,vulkan,drm],
   link_with: pgolib,
   install: true)
 

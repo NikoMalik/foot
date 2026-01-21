@@ -4,6 +4,7 @@
 #include <signal.h>
 #include <string.h>
 #include <unistd.h>
+#include "vulkan.h"
 
 #include <sys/ioctl.h>
 #include <sys/time.h>
@@ -13,10 +14,10 @@
 
 #include "macros.h"
 #if HAS_INCLUDE(<pthread_np.h>)
- #include <pthread_np.h>
- #define pthread_setname_np(thread, name) (pthread_set_name_np(thread, name), 0)
+#include <pthread_np.h>
+#define pthread_setname_np(thread, name) (pthread_set_name_np(thread, name), 0)
 #elif defined(__NetBSD__)
- #define pthread_setname_np(thread, name) pthread_setname_np(thread, "%s", (void *)name)
+#define pthread_setname_np(thread, name) pthread_setname_np(thread, "%s", (void *)name)
 #endif
 
 #include <presentation-time.h>
@@ -54,30 +55,28 @@ struct renderer {
 
 static struct {
     size_t total;
-    size_t zero;  /* commits presented in less than one frame interval */
-    size_t one;   /* commits presented in one frame interval */
-    size_t two;   /* commits presented in two or more frame intervals */
+    size_t zero; /* commits presented in less than one frame interval */
+    size_t one;  /* commits presented in one frame interval */
+    size_t two;  /* commits presented in two or more frame intervals */
 } presentation_statistics = {0};
 
 static void fdm_hook_refresh_pending_terminals(struct fdm *fdm, void *data);
 
 struct renderer *
-render_init(struct fdm *fdm, struct wayland *wayl)
-{
+render_init(struct fdm *fdm, struct wayland *wayl) {
     struct renderer *renderer = malloc(sizeof(*renderer));
     if (unlikely(renderer == NULL)) {
         LOG_ERRNO("malloc() failed");
         return NULL;
     }
 
-    *renderer = (struct renderer) {
+    *renderer = (struct renderer){
         .fdm = fdm,
         .wayl = wayl,
     };
 
     if (!fdm_hook_add(fdm, &fdm_hook_refresh_pending_terminals, renderer,
-                      FDM_HOOK_PRIORITY_NORMAL))
-    {
+                      FDM_HOOK_PRIORITY_NORMAL)) {
         LOG_ERR("failed to register FDM hook");
         free(renderer);
         return NULL;
@@ -86,9 +85,7 @@ render_init(struct fdm *fdm, struct wayland *wayl)
     return renderer;
 }
 
-void
-render_destroy(struct renderer *renderer)
-{
+void render_destroy(struct renderer *renderer) {
     if (renderer == NULL)
         return;
 
@@ -99,8 +96,7 @@ render_destroy(struct renderer *renderer)
 }
 
 static void DESTRUCTOR
-log_presentation_statistics(void)
-{
+log_presentation_statistics(void) {
     if (presentation_statistics.total == 0)
         return;
 
@@ -114,8 +110,7 @@ log_presentation_statistics(void)
 static void
 sync_output(void *data,
             struct wp_presentation_feedback *wp_presentation_feedback,
-            struct wl_output *output)
-{
+            struct wl_output *output) {
 }
 
 struct presentation_context {
@@ -128,8 +123,7 @@ static void
 presented(void *data,
           struct wp_presentation_feedback *wp_presentation_feedback,
           uint32_t tv_sec_hi, uint32_t tv_sec_lo, uint32_t tv_nsec,
-          uint32_t refresh, uint32_t seq_hi, uint32_t seq_lo, uint32_t flags)
-{
+          uint32_t refresh, uint32_t seq_hi, uint32_t seq_lo, uint32_t flags) {
     struct presentation_context *ctx = data;
     struct terminal *term = ctx->term;
     const struct timeval *input = &ctx->input;
@@ -141,7 +135,7 @@ presented(void *data,
     };
 
     bool use_input = (input->tv_sec > 0 || input->tv_usec > 0) &&
-        timercmp(&presented, input, >);
+                     timercmp(&presented, input, >);
     char msg[1024];
     int chars = 0;
 
@@ -209,8 +203,7 @@ presented(void *data,
 }
 
 static void
-discarded(void *data, struct wp_presentation_feedback *wp_presentation_feedback)
-{
+discarded(void *data, struct wp_presentation_feedback *wp_presentation_feedback) {
     struct presentation_context *ctx = data;
     wp_presentation_feedback_destroy(wp_presentation_feedback);
     free(ctx);
@@ -223,17 +216,15 @@ static const struct wp_presentation_feedback_listener presentation_feedback_list
 };
 
 static struct fcft_font *
-attrs_to_font(const struct terminal *term, const struct attributes *attrs)
-{
+attrs_to_font(const struct terminal *term, const struct attributes *attrs) {
     int idx = attrs->italic << 1 | attrs->bold;
     return term->fonts[idx];
 }
 
 static pixman_color_t
-color_hex_to_pixman_srgb(uint32_t color, uint16_t alpha)
-{
+color_hex_to_pixman_srgb(uint32_t color, uint16_t alpha) {
     return (pixman_color_t){
-        .alpha = alpha,  /* Consider alpha linear already? */
+        .alpha = alpha, /* Consider alpha linear already? */
         .red = srgb_decode_8_to_16((color >> 16) & 0xff),
         .green = srgb_decode_8_to_16((color >> 8) & 0xff),
         .blue = srgb_decode_8_to_16((color >> 0) & 0xff),
@@ -241,19 +232,18 @@ color_hex_to_pixman_srgb(uint32_t color, uint16_t alpha)
 }
 
 static inline pixman_color_t
-color_hex_to_pixman_with_alpha(uint32_t color, uint16_t alpha, bool srgb)
-{
+color_hex_to_pixman_with_alpha(uint32_t color, uint16_t alpha, bool srgb) {
     pixman_color_t ret;
 
     if (srgb)
         ret = color_hex_to_pixman_srgb(color, alpha);
     else {
         ret = (pixman_color_t){
-            .red =   ((color >> 16 & 0xff) | (color >> 8 & 0xff00)),
-            .green = ((color >>  8 & 0xff) | (color >> 0 & 0xff00)),
-            .blue =  ((color >>  0 & 0xff) | (color << 8 & 0xff00)),
+            .red = ((color >> 16 & 0xff) | (color >> 8 & 0xff00)),
+            .green = ((color >> 8 & 0xff) | (color >> 0 & 0xff00)),
+            .blue = ((color >> 0 & 0xff) | (color << 8 & 0xff00)),
             .alpha = alpha,
-            };
+        };
     }
 
     ret.red = (uint32_t)ret.red * alpha / 0xffff;
@@ -264,8 +254,7 @@ color_hex_to_pixman_with_alpha(uint32_t color, uint16_t alpha, bool srgb)
 }
 
 static inline pixman_color_t
-color_hex_to_pixman(uint32_t color, bool srgb)
-{
+color_hex_to_pixman(uint32_t color, bool srgb) {
     /* Count on the compiler optimizing this */
     return color_hex_to_pixman_with_alpha(color, 0xffff, srgb);
 }
@@ -275,23 +264,21 @@ static inline int i_lerp(int from, int to, float t) {
 }
 
 static inline uint32_t
-color_blend_towards(uint32_t from, uint32_t to, float amount)
-{
+color_blend_towards(uint32_t from, uint32_t to, float amount) {
     if (unlikely(amount == 0))
         return from;
-    float t = 1 - 1/amount;
+    float t = 1 - 1 / amount;
 
     uint32_t alpha = from & 0xff000000;
-    uint8_t r = i_lerp((from>>16)&0xff, (to>>16)&0xff, t);
-    uint8_t g = i_lerp((from>>8)&0xff, (to>>8)&0xff, t);
-    uint8_t b = i_lerp((from>>0)&0xff, (to>>0)&0xff, t);
+    uint8_t r = i_lerp((from >> 16) & 0xff, (to >> 16) & 0xff, t);
+    uint8_t g = i_lerp((from >> 8) & 0xff, (to >> 8) & 0xff, t);
+    uint8_t b = i_lerp((from >> 0) & 0xff, (to >> 0) & 0xff, t);
 
-    return alpha | (r<<16) | (g<<8) | (b<<0);
+    return alpha | (r << 16) | (g << 8) | (b << 0);
 }
 
 static inline uint32_t
-color_dim(const struct terminal *term, uint32_t color)
-{
+color_dim(const struct terminal *term, uint32_t color) {
     const struct config *conf = term->conf;
     const uint8_t custom_dim = conf->colors_dark.use_custom.dim;
 
@@ -313,8 +300,8 @@ color_dim(const struct terminal *term, uint32_t color)
     }
 
     const struct color_theme *theme = term->colors.active_theme == COLOR_THEME_DARK
-        ? &conf->colors_dark
-        : &conf->colors_light;
+                                          ? &conf->colors_dark
+                                          : &conf->colors_light;
 
     return color_blend_towards(
         color,
@@ -323,8 +310,7 @@ color_dim(const struct terminal *term, uint32_t color)
 }
 
 static inline uint32_t
-color_brighten(const struct terminal *term, uint32_t color)
-{
+color_brighten(const struct terminal *term, uint32_t color) {
     /*
      * First try to match the color against the base 8 colors. If we
      * find a match, return the corresponding bright color.
@@ -342,53 +328,46 @@ color_brighten(const struct terminal *term, uint32_t color)
 
 static void
 draw_hollow_block(const struct terminal *term, pixman_image_t *pix,
-                  const pixman_color_t *color, int x, int y, int cell_cols)
-{
+                  const pixman_color_t *color, int x, int y, int cell_cols) {
     const int scale = (int)roundf(term->scale);
     const int width = min(min(scale, term->cell_width), term->cell_height);
 
     pixman_image_fill_rectangles(
         PIXMAN_OP_SRC, pix, color, 4,
-        (pixman_rectangle16_t []){
-         {x, y, cell_cols * term->cell_width, width},                              /* top */
-         {x, y, width, term->cell_height},                                         /* left */
-         {x + cell_cols * term->cell_width - width, y, width, term->cell_height},  /* right */
-         {x, y + term->cell_height - width, cell_cols * term->cell_width, width},  /* bottom */
+        (pixman_rectangle16_t[]){
+            {x, y, cell_cols * term->cell_width, width},                             /* top */
+            {x, y, width, term->cell_height},                                        /* left */
+            {x + cell_cols * term->cell_width - width, y, width, term->cell_height}, /* right */
+            {x, y + term->cell_height - width, cell_cols * term->cell_width, width}, /* bottom */
         });
 }
 
 static void
 draw_beam_cursor(const struct terminal *term, pixman_image_t *pix,
                  const struct fcft_font *font,
-                 const pixman_color_t *color, int x, int y)
-{
+                 const pixman_color_t *color, int x, int y) {
     int baseline = y + term->font_baseline - term->fonts[0]->ascent;
     pixman_image_fill_rectangles(
         PIXMAN_OP_SRC, pix, color,
-        1, &(pixman_rectangle16_t){
-            x, baseline,
-            term_pt_or_px_as_pixels(term, &term->conf->cursor.beam_thickness),
-            term->fonts[0]->ascent + term->fonts[0]->descent});
+        1, &(pixman_rectangle16_t){x, baseline, term_pt_or_px_as_pixels(term, &term->conf->cursor.beam_thickness), term->fonts[0]->ascent + term->fonts[0]->descent});
 }
 
 static int
-underline_offset(const struct terminal *term, const struct fcft_font *font)
-{
+underline_offset(const struct terminal *term, const struct fcft_font *font) {
     return term->font_baseline -
-        (term->conf->use_custom_underline_offset
-         ? -term_pt_or_px_as_pixels(term, &term->conf->underline_offset)
-         : font->underline.position);
+           (term->conf->use_custom_underline_offset
+                ? -term_pt_or_px_as_pixels(term, &term->conf->underline_offset)
+                : font->underline.position);
 }
 
 static void
 draw_underline_cursor(const struct terminal *term, pixman_image_t *pix,
-               const struct fcft_font *font,
-                      const pixman_color_t *color, int x, int y, int cols)
-{
+                      const struct fcft_font *font,
+                      const pixman_color_t *color, int x, int y, int cols) {
     int thickness = term->conf->cursor.underline_thickness.px >= 0
-        ? term_pt_or_px_as_pixels(
-            term, &term->conf->cursor.underline_thickness)
-        : font->underline.thickness;
+                        ? term_pt_or_px_as_pixels(
+                              term, &term->conf->cursor.underline_thickness)
+                        : font->underline.thickness;
 
     /* Make sure the line isn't positioned below the cell */
     const int y_ofs = min(underline_offset(term, font) + thickness,
@@ -396,19 +375,17 @@ draw_underline_cursor(const struct terminal *term, pixman_image_t *pix,
 
     pixman_image_fill_rectangles(
         PIXMAN_OP_SRC, pix, color,
-        1, &(pixman_rectangle16_t){
-            x, y + y_ofs, cols * term->cell_width, thickness});
+        1, &(pixman_rectangle16_t){x, y + y_ofs, cols * term->cell_width, thickness});
 }
 
 static void
 draw_underline(const struct terminal *term, pixman_image_t *pix,
                const struct fcft_font *font,
-               const pixman_color_t *color, int x, int y, int cols)
-{
+               const pixman_color_t *color, int x, int y, int cols) {
     const int thickness = term->conf->underline_thickness.px >= 0
-        ? term_pt_or_px_as_pixels(
-            term, &term->conf->underline_thickness)
-        : font->underline.thickness;
+                              ? term_pt_or_px_as_pixels(
+                                    term, &term->conf->underline_thickness)
+                              : font->underline.thickness;
 
     /* Make sure the line isn't positioned below the cell */
     const int y_ofs = min(underline_offset(term, font),
@@ -416,16 +393,14 @@ draw_underline(const struct terminal *term, pixman_image_t *pix,
 
     pixman_image_fill_rectangles(
         PIXMAN_OP_SRC, pix, color,
-        1, &(pixman_rectangle16_t){
-            x, y + y_ofs, cols * term->cell_width, thickness});
+        1, &(pixman_rectangle16_t){x, y + y_ofs, cols * term->cell_width, thickness});
 }
 
 static void
 draw_styled_underline(const struct terminal *term, pixman_image_t *pix,
                       const struct fcft_font *font,
                       const pixman_color_t *color,
-                      enum underline_style style, int x, int y, int cols)
-{
+                      enum underline_style style, int x, int y, int cols) {
     xassert(style != UNDERLINE_NONE);
 
     if (style == UNDERLINE_SINGLE) {
@@ -434,9 +409,9 @@ draw_styled_underline(const struct terminal *term, pixman_image_t *pix,
     }
 
     const int thickness = term->conf->underline_thickness.px >= 0
-        ? term_pt_or_px_as_pixels(
-            term, &term->conf->underline_thickness)
-        : font->underline.thickness;
+                              ? term_pt_or_px_as_pixels(
+                                    term, &term->conf->underline_thickness)
+                              : font->underline.thickness;
 
     int y_ofs;
 
@@ -513,8 +488,7 @@ draw_styled_underline(const struct terminal *term, pixman_image_t *pix,
         int dot_x = x;
         for (int i = 0; i < per_cell; i++) {
             rects[i] = (pixman_rectangle16_t){
-                dot_x, y + y_ofs, thickness, thickness
-            };
+                dot_x, y + y_ofs, thickness, thickness};
 
             dot_x += thickness + spacing[i];
         }
@@ -533,9 +507,9 @@ draw_styled_underline(const struct terminal *term, pixman_image_t *pix,
         const double hx_2 = ceil_w * ceil_w / 4.0;
         const int th = round(sqrt(th_2 + (th_2 * bt_2 / hx_2)) / 2.);
 
-        #define I(x) pixman_int_to_fixed(x)
+#define I(x) pixman_int_to_fixed(x)
         const pixman_trapezoid_t traps[] = {
-#if 0  /* characters sit within the "dips" of the curlies */
+#if 0 /* characters sit within the "dips" of the curlies */
             {
                 I(top), I(bot),
                 {{I(x), I(top + th)}, {I(half_x), I(bot + th)}},
@@ -546,14 +520,16 @@ draw_styled_underline(const struct terminal *term, pixman_image_t *pix,
                 {{I(half_x), I(bot - th)}, {I(full_x), I(top - th)}},
                 {{I(half_x), I(bot + th)}, {I(full_x), I(top + th)}},
             }
-#else  /* characters sit on top of the curlies */
+#else /* characters sit on top of the curlies */
             {
-                I(top), I(bot),
+                I(top),
+                I(bot),
                 {{I(x), I(bot - th)}, {I(half_x), I(top - th)}},
                 {{I(x), I(bot + th)}, {I(half_x), I(top + th)}},
             },
             {
-                I(top), I(bot),
+                I(top),
+                I(bot),
                 {{I(half_x), I(top + th)}, {I(full_x), I(bot + th)}},
                 {{I(half_x), I(top - th)}, {I(full_x), I(bot - th)}},
             }
@@ -579,31 +555,27 @@ draw_styled_underline(const struct terminal *term, pixman_image_t *pix,
 static void
 draw_strikeout(const struct terminal *term, pixman_image_t *pix,
                const struct fcft_font *font,
-               const pixman_color_t *color, int x, int y, int cols)
-{
+               const pixman_color_t *color, int x, int y, int cols) {
     const int thickness = term->conf->strikeout_thickness.px >= 0
-        ? term_pt_or_px_as_pixels(
-            term, &term->conf->strikeout_thickness)
-        : font->strikeout.thickness;
+                              ? term_pt_or_px_as_pixels(
+                                    term, &term->conf->strikeout_thickness)
+                              : font->strikeout.thickness;
 
     /* Try to center custom strikeout */
     const int position = term->conf->strikeout_thickness.px >= 0
-        ? font->strikeout.position - round(font->strikeout.thickness / 2.) + round(thickness / 2.)
-        : font->strikeout.position;
+                             ? font->strikeout.position - round(font->strikeout.thickness / 2.) + round(thickness / 2.)
+                             : font->strikeout.position;
 
     pixman_image_fill_rectangles(
         PIXMAN_OP_SRC, pix, color,
-        1, &(pixman_rectangle16_t){
-            x, y + term->font_baseline - position,
-            cols * term->cell_width, thickness});
+        1, &(pixman_rectangle16_t){x, y + term->font_baseline - position, cols * term->cell_width, thickness});
 }
 
 static void
 cursor_colors_for_cell(const struct terminal *term, const struct cell *cell,
                        const pixman_color_t *fg, const pixman_color_t *bg,
                        pixman_color_t *cursor_color, pixman_color_t *text_color,
-                       bool gamma_correct)
-{
+                       bool gamma_correct) {
     if (term->colors.cursor_bg >> 31)
         *cursor_color = color_hex_to_pixman(term->colors.cursor_bg, gamma_correct);
     else
@@ -618,8 +590,7 @@ cursor_colors_for_cell(const struct terminal *term, const struct cell *cell,
 
     if (text_color->red == cursor_color->red &&
         text_color->green == cursor_color->green &&
-        text_color->blue == cursor_color->blue)
-    {
+        text_color->blue == cursor_color->blue) {
         *text_color = color_hex_to_pixman(term->colors.bg, gamma_correct);
         *cursor_color = color_hex_to_pixman(term->colors.fg, gamma_correct);
     }
@@ -628,8 +599,7 @@ cursor_colors_for_cell(const struct terminal *term, const struct cell *cell,
 static void
 draw_cursor(const struct terminal *term, const struct cell *cell,
             const struct fcft_font *font, pixman_image_t *pix, pixman_color_t *fg,
-            const pixman_color_t *bg, int x, int y, int cols)
-{
+            const pixman_color_t *bg, int x, int y, int cols) {
     pixman_color_t cursor_color;
     pixman_color_t text_color;
     cursor_colors_for_cell(term, cell, fg, bg, &cursor_color, &text_color,
@@ -652,8 +622,7 @@ draw_cursor(const struct terminal *term, const struct cell *cell,
     switch (term->cursor_style) {
     case CURSOR_BLOCK:
         if (likely(term->cursor_blink.state == CURSOR_BLINK_ON) ||
-            !term->kbd_focus)
-        {
+            !term->kbd_focus) {
             *fg = text_color;
             pixman_image_fill_rectangles(
                 PIXMAN_OP_SRC, pix, &cursor_color, 1,
@@ -663,16 +632,14 @@ draw_cursor(const struct terminal *term, const struct cell *cell,
 
     case CURSOR_BEAM:
         if (likely(term->cursor_blink.state == CURSOR_BLINK_ON ||
-                   !term->kbd_focus))
-        {
+                   !term->kbd_focus)) {
             draw_beam_cursor(term, pix, font, &cursor_color, x, y);
         }
         break;
 
     case CURSOR_UNDERLINE:
         if (likely(term->cursor_blink.state == CURSOR_BLINK_ON ||
-                   !term->kbd_focus))
-        {
+                   !term->kbd_focus)) {
             draw_underline_cursor(term, pix, font, &cursor_color, x, y, cols);
         }
         break;
@@ -687,8 +654,7 @@ draw_cursor(const struct terminal *term, const struct cell *cell,
 static int
 render_cell(struct terminal *term, pixman_image_t *pix,
             pixman_region32_t *damage, struct row *row, int row_no, int col,
-            bool has_cursor)
-{
+            bool has_cursor) {
     struct cell *cell = &row->cells[col];
     if (cell->attrs.clean)
         return 0;
@@ -790,8 +756,7 @@ render_cell(struct terminal *term, pixman_image_t *pix,
                       cell->attrs.bg_src == COLOR_BASE256) &&
                      term->colors.table[cell->attrs.bg] == term->colors.bg) ||
                     (cell->attrs.bg_src == COLOR_RGB &&
-                     cell->attrs.bg == term->colors.bg))
-                {
+                     cell->attrs.bg == term->colors.bg)) {
                     alpha = term->colors.alpha;
                 }
                 break;
@@ -886,8 +851,7 @@ render_cell(struct terminal *term, pixman_image_t *pix,
                 (base >= GLYPH_OCTANTS_FIRST &&
                  base <= GLYPH_OCTANTS_LAST)) &&
 
-            likely(!term->conf->box_drawings_uses_font_glyphs))
-        {
+            likely(!term->conf->box_drawings_uses_font_glyphs)) {
             struct fcft_glyph ***arr;
             size_t count;
             size_t idx;
@@ -933,8 +897,7 @@ render_cell(struct terminal *term, pixman_image_t *pix,
             }
         }
 
-        else if (base >= CELL_COMB_CHARS_LO && base <= CELL_COMB_CHARS_HI)
-        {
+        else if (base >= CELL_COMB_CHARS_LO && base <= CELL_COMB_CHARS_HI) {
             composed = composed_lookup(term->composed, base - CELL_COMB_CHARS_LO);
             base = composed->chars[0];
 
@@ -990,8 +953,7 @@ render_cell(struct terminal *term, pixman_image_t *pix,
     int render_width = cell_cols * width;
     if (term->conf->tweak.overflowing_glyphs &&
         glyph_count > 0 &&
-        cols_left > cell_cols)
-    {
+        cols_left > cell_cols) {
         int glyph_width = 0, advance = 0;
         for (size_t i = 0; i < glyph_count; i++) {
             glyph_width = max(glyph_width,
@@ -1038,8 +1000,7 @@ render_cell(struct terminal *term, pixman_image_t *pix,
     }
 
     if (cell->wc == 0 || cell->wc >= CELL_SPACER || cell->wc == U'\t' ||
-        (unlikely(cell->attrs.conceal) && !is_selected))
-    {
+        (unlikely(cell->attrs.conceal) && !is_selected)) {
         goto draw_cursor;
     }
 
@@ -1102,10 +1063,10 @@ render_cell(struct terminal *term, pixman_image_t *pix,
                      * an offset of *one* cell.
                      */
                     int x_ofs = cell_cols == 1
-                        ? g->x < 0
-                            ? cell_cols * term->cell_width
-                            : (cell_cols - 1) * term->cell_width
-                        : 0;
+                                    ? g->x < 0
+                                          ? cell_cols * term->cell_width
+                                          : (cell_cols - 1) * term->cell_width
+                                    : 0;
 
                     if (cell_cols > 1)
                         pen_x += term->cell_width;
@@ -1167,7 +1128,6 @@ render_cell(struct terminal *term, pixman_image_t *pix,
 
         draw_styled_underline(
             term, pix, font, &underline_color, underline_style, x, y, cell_cols);
-
     }
 
     if (cell->attrs.strikethrough)
@@ -1176,8 +1136,8 @@ render_cell(struct terminal *term, pixman_image_t *pix,
     if (unlikely(cell->attrs.url)) {
         pixman_color_t url_color = color_hex_to_pixman(
             term->conf->colors_dark.use_custom.url
-            ? term->conf->colors_dark.url
-            : term->colors.table[3],
+                ? term->conf->colors_dark.url
+                : term->colors.table[3],
             gamma_correct);
         draw_underline(term, pix, font, &url_color, x, y, cell_cols);
     }
@@ -1195,15 +1155,13 @@ draw_cursor:
 static void
 render_row(struct terminal *term, pixman_image_t *pix,
            pixman_region32_t *damage, struct row *row,
-           int row_no, int cursor_col)
-{
+           int row_no, int cursor_col) {
     for (int col = term->cols - 1; col >= 0; col--)
         render_cell(term, pix, damage, row, row_no, col, cursor_col == col);
 }
 
 static void
-render_urgency(struct terminal *term, struct buffer *buf)
-{
+render_urgency(struct terminal *term, struct vk_buffer *buf) {
     uint32_t red = term->colors.table[1];
     pixman_color_t bg = color_hex_to_pixman(
         red, wayl_do_linear_blending(term->wl, term->conf));
@@ -1229,9 +1187,8 @@ render_urgency(struct terminal *term, struct buffer *buf)
 }
 
 static void
-render_margin(struct terminal *term, struct buffer *buf,
-              int start_line, int end_line, bool apply_damage)
-{
+render_margin(struct terminal *term, struct vk_buffer *buf,
+              int start_line, int end_line, bool apply_damage) {
     /* Fill area outside the cell grid with the default background color */
     const int rmargin = term->width - term->margins.right;
     const int bmargin = term->height - term->margins.bottom;
@@ -1264,7 +1221,7 @@ render_margin(struct terminal *term, struct buffer *buf,
             /* Right */
             {rmargin, term->margins.top + start_line * term->cell_height,
              term->margins.right, line_count * term->cell_height},
-    });
+        });
 
     if (term->render.urgency)
         render_urgency(term, buf);
@@ -1305,9 +1262,8 @@ render_margin(struct terminal *term, struct buffer *buf,
 }
 
 static void
-grid_render_scroll(struct terminal *term, struct buffer *buf,
-                   const struct damage *dmg)
-{
+grid_render_scroll(struct terminal *term, struct vk_buffer *buf,
+                   const struct damage *dmg) {
     LOG_DBG(
         "damage: SCROLL: %d-%d by %d lines",
         dmg->region.start, dmg->region.end, dmg->lines);
@@ -1364,18 +1320,17 @@ grid_render_scroll(struct terminal *term, struct buffer *buf,
      * SHM. Otherwise use memmove.
      */
     bool try_shm_scroll =
-        shm_can_scroll(buf) && (
-            dmg->lines +
-            dmg->region.start +
-            (term->rows - dmg->region.end)) < term->rows / 2;
+        vk_can_scroll(buf) && (dmg->lines +
+                               dmg->region.start +
+                               (term->rows - dmg->region.end)) < term->rows / 2;
 
     bool did_shm_scroll = false;
 
-    //try_shm_scroll = false;
-    //try_shm_scroll = true;
+    // try_shm_scroll = false;
+    // try_shm_scroll = true;
 
     if (try_shm_scroll) {
-        did_shm_scroll = shm_scroll(
+        did_shm_scroll = vk_scroll(
             buf, dmg->lines * term->cell_height,
             term->margins.top, dmg->region.start * term->cell_height,
             term->margins.bottom, (term->rows - dmg->region.end) * term->cell_height);
@@ -1401,7 +1356,8 @@ grid_render_scroll(struct terminal *term, struct buffer *buf,
     timespec_sub(&end_time, &start_time, &memmove_time);
     LOG_INFO("scrolled %dKB (%d lines) using %s in %lds %ldns",
              height * buf->stride / 1024, dmg->lines,
-             did_shm_scroll ? "SHM" : try_shm_scroll ? "memmove (SHM failed)" :  "memmove",
+             did_shm_scroll ? "SHM" : try_shm_scroll ? "memmove (SHM failed)"
+                                                     : "memmove",
              (long)memmove_time.tv_sec, memmove_time.tv_nsec);
 #endif
 
@@ -1418,9 +1374,8 @@ grid_render_scroll(struct terminal *term, struct buffer *buf,
 }
 
 static void
-grid_render_scroll_reverse(struct terminal *term, struct buffer *buf,
-                           const struct damage *dmg)
-{
+grid_render_scroll_reverse(struct terminal *term, struct vk_buffer *buf,
+                           const struct damage *dmg) {
     LOG_DBG(
         "damage: SCROLL REVERSE: %d-%d by %d lines",
         dmg->region.start, dmg->region.end, dmg->lines);
@@ -1444,15 +1399,14 @@ grid_render_scroll_reverse(struct terminal *term, struct buffer *buf,
     int dst_y = term->margins.top + (dmg->region.start + dmg->lines) * term->cell_height;
 
     bool try_shm_scroll =
-        shm_can_scroll(buf) && (
-            dmg->lines +
-            dmg->region.start +
-            (term->rows - dmg->region.end)) < term->rows / 2;
+        vk_can_scroll(buf) && (dmg->lines +
+                               dmg->region.start +
+                               (term->rows - dmg->region.end)) < term->rows / 2;
 
     bool did_shm_scroll = false;
 
     if (try_shm_scroll) {
-        did_shm_scroll = shm_scroll(
+        did_shm_scroll = vk_scroll(
             buf, -dmg->lines * term->cell_height,
             term->margins.top, dmg->region.start * term->cell_height,
             term->margins.bottom, (term->rows - dmg->region.end) * term->cell_height);
@@ -1478,7 +1432,8 @@ grid_render_scroll_reverse(struct terminal *term, struct buffer *buf,
     timespec_sub(&end_time, &start_time, &memmove_time);
     LOG_INFO("scrolled REVERSE %dKB (%d lines) using %s in %lds %ldns",
              height * buf->stride / 1024, dmg->lines,
-             did_shm_scroll ? "SHM" : try_shm_scroll ? "memmove (SHM failed)" :  "memmove",
+             did_shm_scroll ? "SHM" : try_shm_scroll ? "memmove (SHM failed)"
+                                                     : "memmove",
              (long)memmove_time.tv_sec, memmove_time.tv_nsec);
 #endif
 
@@ -1497,8 +1452,7 @@ grid_render_scroll_reverse(struct terminal *term, struct buffer *buf,
 static void
 render_sixel_chunk(struct terminal *term, pixman_image_t *pix,
                    pixman_region32_t *damage, const struct sixel *sixel,
-                   int term_start_row, int img_start_row, int count)
-{
+                   int term_start_row, int img_start_row, int count) {
     /* Translate row/column to x/y pixel values */
     const int x = term->margins.left + sixel->pos.col * term->cell_width;
     const int y = term->margins.top + term_start_row * term->cell_height;
@@ -1521,7 +1475,7 @@ render_sixel_chunk(struct terminal *term, pixman_image_t *pix,
     xassert(width == 0 || x + width <= term->width - term->margins.right);
     xassert(height == 0 || y + height <= term->height - term->margins.bottom);
 
-    //LOG_DBG("sixel chunk: %dx%d %dx%d", x, y, width, height);
+    // LOG_DBG("sixel chunk: %dx%d %dx%d", x, y, width, height);
 
     pixman_image_composite32(
         sixel->opaque ? PIXMAN_OP_SRC : PIXMAN_OP_OVER,
@@ -1540,8 +1494,7 @@ render_sixel_chunk(struct terminal *term, pixman_image_t *pix,
 static void
 render_sixel(struct terminal *term, pixman_image_t *pix,
              pixman_region32_t *damage, const struct coord *cursor,
-             const struct sixel *sixel)
-{
+             const struct sixel *sixel) {
     xassert(sixel->pix != NULL);
     xassert(sixel->width >= 0);
     xassert(sixel->height >= 0);
@@ -1554,13 +1507,13 @@ render_sixel(struct terminal *term, pixman_image_t *pix,
     int chunk_term_start = -1; /* Viewport relative start row of chunk */
     int chunk_row_count = 0;   /* Number of rows to emit */
 
-#define maybe_emit_sixel_chunk_then_reset()                             \
-    if (chunk_row_count != 0) {                                         \
-        render_sixel_chunk(                                             \
-            term, pix, damage, sixel,                                   \
-            chunk_term_start, chunk_img_start, chunk_row_count);        \
-        chunk_term_start = chunk_img_start = -1;                        \
-        chunk_row_count = 0;                                            \
+#define maybe_emit_sixel_chunk_then_reset()                      \
+    if (chunk_row_count != 0) {                                  \
+        render_sixel_chunk(                                      \
+            term, pix, damage, sixel,                            \
+            chunk_term_start, chunk_img_start, chunk_row_count); \
+        chunk_term_start = chunk_img_start = -1;                 \
+        chunk_row_count = 0;                                     \
     }
 
     /*
@@ -1583,8 +1536,7 @@ render_sixel(struct terminal *term, pixman_image_t *pix,
 
     for (int _abs_row_no = sixel->pos.row;
          _abs_row_no < sixel->pos.row + sixel->rows;
-         _abs_row_no++)
-    {
+         _abs_row_no++) {
         const int abs_row_no = _abs_row_no & (term->grid->num_rows - 1);
         const int term_row_no =
             (abs_row_no - term->grid->view + term->grid->num_rows) &
@@ -1609,7 +1561,7 @@ render_sixel(struct terminal *term, pixman_image_t *pix,
 
         /* Is the row dirty? */
         struct row *row = term->grid->rows[abs_row_no];
-        xassert(row != NULL);  /* Should be visible */
+        xassert(row != NULL); /* Should be visible */
 
         if (!row->dirty) {
             maybe_emit_sixel_chunk_then_reset();
@@ -1638,8 +1590,7 @@ render_sixel(struct terminal *term, pixman_image_t *pix,
         } else {
             for (int col = sixel->pos.col;
                  col < min(sixel->pos.col + sixel->cols, term->cols);
-                 col++)
-            {
+                 col++) {
                 struct cell *cell = &row->cells[col];
 
                 if (!cell->attrs.clean) {
@@ -1647,8 +1598,7 @@ render_sixel(struct terminal *term, pixman_image_t *pix,
                     bool last_col = col == sixel->pos.col + sixel->cols - 1;
 
                     if ((last_row_needs_erase && last_row) ||
-                        (last_col_needs_erase && last_col))
-                    {
+                        (last_col_needs_erase && last_col)) {
                         render_cell(term, pix, damage, row, term_row_no, col, cursor_col == col);
                     } else {
                         cell->attrs.clean = 1;
@@ -1673,33 +1623,25 @@ render_sixel(struct terminal *term, pixman_image_t *pix,
 
 static void
 render_sixel_images(struct terminal *term, pixman_image_t *pix,
-                    pixman_region32_t *damage, const struct coord *cursor)
-{
+                    pixman_region32_t *damage, const struct coord *cursor) {
     if (likely(tll_length(term->grid->sixel_images)) == 0)
         return;
 
-    const int scrollback_end
-        = (term->grid->offset + term->rows) & (term->grid->num_rows - 1);
+    const int scrollback_end = (term->grid->offset + term->rows) & (term->grid->num_rows - 1);
 
-    const int view_start
-        = (term->grid->view
-           - scrollback_end
-           + term->grid->num_rows) & (term->grid->num_rows - 1);
+    const int view_start = (term->grid->view - scrollback_end + term->grid->num_rows) & (term->grid->num_rows - 1);
 
     const int view_end = view_start + term->rows - 1;
 
-    //LOG_DBG("SIXELS: %zu images, view=%d-%d",
-    //        tll_length(term->grid->sixel_images), view_start, view_end);
+    // LOG_DBG("SIXELS: %zu images, view=%d-%d",
+    //         tll_length(term->grid->sixel_images), view_start, view_end);
 
     tll_foreach(term->grid->sixel_images, it) {
         const struct sixel *six = &it->item;
-        const int start
-            = (six->pos.row
-               - scrollback_end
-               + term->grid->num_rows) & (term->grid->num_rows - 1);
+        const int start = (six->pos.row - scrollback_end + term->grid->num_rows) & (term->grid->num_rows - 1);
         const int end = start + six->rows - 1;
 
-        //LOG_DBG("  sixel: %d-%d", start, end);
+        // LOG_DBG("  sixel: %d-%d", start, end);
         if (start > view_end) {
             /* Sixel starts after view ends, no need to try to render it */
             continue;
@@ -1717,8 +1659,7 @@ render_sixel_images(struct terminal *term, pixman_image_t *pix,
 #if defined(FOOT_IME_ENABLED) && FOOT_IME_ENABLED
 static void
 render_ime_preedit_for_seat(struct terminal *term, struct seat *seat,
-                            struct buffer *buf)
-{
+                            struct vk_buffer *buf) {
     if (likely(seat->ime.preedit.cells == NULL))
         return;
 
@@ -1740,8 +1681,7 @@ render_ime_preedit_for_seat(struct terminal *term, struct seat *seat,
     int cells_needed = seat->ime.preedit.count;
 
     if (seat->ime.preedit.cursor.start == cells_needed &&
-        seat->ime.preedit.cursor.end == cells_needed)
-    {
+        seat->ime.preedit.cursor.end == cells_needed) {
         /* Cursor will be drawn *after* the pre-edit string, i.e. in
          * the cell *after*. This means we need to copy, and dirty,
          * one extra cell from the original grid, or we'll leave
@@ -1752,7 +1692,7 @@ render_ime_preedit_for_seat(struct terminal *term, struct seat *seat,
 
     int row_idx = cursor.row;
     int col_idx = cursor.col;
-    int ime_ofs = 0;  /* Offset into pre-edit string to start rendering at */
+    int ime_ofs = 0; /* Offset into pre-edit string to start rendering at */
 
     int cells_left = term->cols - cursor.col;
     int cells_used = min(cells_needed, term->cols);
@@ -1779,8 +1719,7 @@ render_ime_preedit_for_seat(struct terminal *term, struct seat *seat,
 
         /* Make sure we don't start in the middle of a character */
         while (ime_ofs < cells_needed &&
-               seat->ime.preedit.cells[ime_ofs].wc >= CELL_SPACER)
-        {
+               seat->ime.preedit.cells[ime_ofs].wc >= CELL_SPACER) {
             ime_ofs++;
         }
     }
@@ -1879,8 +1818,7 @@ render_ime_preedit_for_seat(struct terminal *term, struct seat *seat,
 #endif
 
 static void
-render_ime_preedit(struct terminal *term, struct buffer *buf)
-{
+render_ime_preedit(struct terminal *term, struct vk_buffer *buf) {
 #if defined(FOOT_IME_ENABLED) && FOOT_IME_ENABLED
     tll_foreach(term->wl->seats, it) {
         if (it->item.kbd_focus == term)
@@ -1891,8 +1829,7 @@ render_ime_preedit(struct terminal *term, struct buffer *buf)
 
 static void
 render_overlay_single_pixel(struct terminal *term, enum overlay_style style,
-                            pixman_color_t color)
-{
+                            pixman_color_t color) {
     struct wayland *wayl = term->wl;
     struct wayl_sub_surface *overlay = &term->window->overlay;
     struct wl_buffer *buf = NULL;
@@ -1958,17 +1895,14 @@ render_overlay_single_pixel(struct terminal *term, enum overlay_style style,
     }
 }
 
-void
-render_overlay(struct terminal *term)
-{
+void render_overlay(struct terminal *term) {
     struct wayl_sub_surface *overlay = &term->window->overlay;
     const bool unicode_mode_active = term->unicode_mode.active;
 
     const enum overlay_style style =
-        term->is_searching ? OVERLAY_SEARCH :
-        term->flash.active ? OVERLAY_FLASH :
-        unicode_mode_active ? OVERLAY_UNICODE_MODE :
-        OVERLAY_NONE;
+        term->is_searching ? OVERLAY_SEARCH : term->flash.active ? OVERLAY_FLASH
+                                          : unicode_mode_active  ? OVERLAY_UNICODE_MODE
+                                                                 : OVERLAY_NONE;
 
     if (likely(style == OVERLAY_NONE)) {
         if (term->render.last_overlay_style != OVERLAY_NONE) {
@@ -1991,9 +1925,9 @@ render_overlay(struct terminal *term)
 
     case OVERLAY_FLASH:
         color = color_hex_to_pixman_with_alpha(
-                term->conf->colors_dark.flash,
-                term->conf->colors_dark.flash_alpha,
-                wayl_do_linear_blending(term->wl, term->conf));
+            term->conf->colors_dark.flash,
+            term->conf->colors_dark.flash_alpha,
+            wayl_do_linear_blending(term->wl, term->conf));
         break;
 
     case OVERLAY_NONE:
@@ -2011,8 +1945,8 @@ render_overlay(struct terminal *term)
         return;
     }
 
-    struct buffer *buf = shm_get_buffer(
-        term->render.chains.overlay, term->width, term->height);
+    struct vk_buffer *buf = vk_get_buffer(
+        term->render.chains.overlay, term->width, term->height, true);
     pixman_image_set_clip_region32(buf->pix[0], NULL);
 
     /* Bounding rectangle of damaged areas - for wl_surface_damage_buffer() */
@@ -2068,8 +2002,7 @@ render_overlay(struct terminal *term)
         struct search_match_iterator iter = search_matches_new_iter(term);
         for (struct range match = search_matches_next(&iter);
              match.start.row >= 0;
-             match = search_matches_next(&iter))
-        {
+             match = search_matches_next(&iter)) {
             int r = match.start.row;
             int start_col = match.start.col;
             const int end_row = match.end.row;
@@ -2135,10 +2068,9 @@ render_overlay(struct terminal *term)
     }
 
     else if (buf == term->render.last_overlay_buf &&
-             style == term->render.last_overlay_style)
-    {
+             style == term->render.last_overlay_style) {
         xassert(style == OVERLAY_FLASH || style == OVERLAY_UNICODE_MODE);
-        shm_did_not_use_buf(buf);
+        vk_did_not_use_buf(buf);
         return;
     } else {
         pixman_image_set_clip_region32(buf->pix[0], NULL);
@@ -2169,9 +2101,7 @@ render_overlay(struct terminal *term)
     term->render.last_overlay_style = style;
 }
 
-int
-render_worker_thread(void *_ctx)
-{
+int render_worker_thread(void *_ctx) {
     struct render_worker_context *ctx = _ctx;
     struct terminal *term = ctx->term;
     const int my_id = ctx->my_id;
@@ -2194,7 +2124,7 @@ render_worker_thread(void *_ctx)
     while (true) {
         sem_wait(start);
 
-        struct buffer *buf = term->render.workers.buf;
+        struct vk_buffer *buf = term->render.workers.buf;
 
         bool frame_done = false;
 
@@ -2264,8 +2194,8 @@ render_worker_thread(void *_ctx)
                     pixman_region32_fini(&dmg);
 
                     buf->age = 0;
-                    shm_unref(term->render.last_buf);
-                    shm_addref(buf);
+                    vk_unref(term->render.last_buf);
+                    vk_addref(buf);
                     term->render.last_buf = buf;
 
                     mtx_lock(&term->render.workers.preapplied_damage.lock);
@@ -2289,8 +2219,7 @@ render_worker_thread(void *_ctx)
 }
 
 static void
-wait_for_preapply_damage(struct terminal *term)
-{
+wait_for_preapply_damage(struct terminal *term) {
     if (!term->render.preapply_last_frame_damage)
         return;
     if (term->render.workers.preapplied_damage.buf == NULL)
@@ -2305,8 +2234,7 @@ wait_for_preapply_damage(struct terminal *term)
 }
 
 struct csd_data
-get_csd_data(const struct terminal *term, enum csd_surface surf_idx)
-{
+get_csd_data(const struct terminal *term, enum csd_surface surf_idx) {
     xassert(term->window->csd_mode == CSD_YES);
 
     const bool borders_visible = wayl_win_csd_borders_visible(term->window);
@@ -2315,13 +2243,16 @@ get_csd_data(const struct terminal *term, enum csd_surface surf_idx)
     const float scale = term->scale;
 
     const int border_width = borders_visible
-        ? roundf(term->conf->csd.border_width * scale) : 0;
+                                 ? roundf(term->conf->csd.border_width * scale)
+                                 : 0;
 
     const int title_height = title_visible
-        ? roundf(term->conf->csd.title_height * scale) : 0;
+                                 ? roundf(term->conf->csd.title_height * scale)
+                                 : 0;
 
     const int button_width = title_visible
-        ? roundf(term->conf->csd.button_width * scale) : 0;
+                                 ? roundf(term->conf->csd.button_width * scale)
+                                 : 0;
 
     int remaining_width = term->width;
 
@@ -2330,12 +2261,16 @@ get_csd_data(const struct terminal *term, enum csd_surface surf_idx)
     const int button_close_start = remaining_width;
 
     const int button_maximize_width = remaining_width >= button_width &&
-        term->window->wm_capabilities.maximize ? button_width : 0;
+                                              term->window->wm_capabilities.maximize
+                                          ? button_width
+                                          : 0;
     remaining_width -= button_maximize_width;
     const int button_maximize_start = remaining_width;
 
     const int button_minimize_width = remaining_width >= button_width &&
-        term->window->wm_capabilities.minimize ? button_width : 0;
+                                              term->window->wm_capabilities.minimize
+                                          ? button_width
+                                          : 0;
     remaining_width -= button_minimize_width;
     const int button_minimize_start = remaining_width;
 
@@ -2355,16 +2290,24 @@ get_csd_data(const struct terminal *term, enum csd_surface surf_idx)
         scale * (roundf(title_height / scale) + roundf(term->height / scale)));
 
     switch (surf_idx) {
-    case CSD_SURF_TITLE:  return (struct csd_data){            0, -title_height,      term->width,      title_height};
-    case CSD_SURF_LEFT:   return (struct csd_data){-border_width, -title_height,     border_width, left_right_height};
-    case CSD_SURF_RIGHT:  return (struct csd_data){  term->width, -title_height,     border_width, left_right_height};
-    case CSD_SURF_TOP:    return (struct csd_data){-border_width,    top_offset, top_bottom_width,      border_width};
-    case CSD_SURF_BOTTOM: return (struct csd_data){-border_width,  term->height, top_bottom_width,      border_width};
+    case CSD_SURF_TITLE:
+        return (struct csd_data){0, -title_height, term->width, title_height};
+    case CSD_SURF_LEFT:
+        return (struct csd_data){-border_width, -title_height, border_width, left_right_height};
+    case CSD_SURF_RIGHT:
+        return (struct csd_data){term->width, -title_height, border_width, left_right_height};
+    case CSD_SURF_TOP:
+        return (struct csd_data){-border_width, top_offset, top_bottom_width, border_width};
+    case CSD_SURF_BOTTOM:
+        return (struct csd_data){-border_width, term->height, top_bottom_width, border_width};
 
     /* Positioned relative to CSD_SURF_TITLE */
-    case CSD_SURF_MINIMIZE: return (struct csd_data){button_minimize_start, 0, button_minimize_width, title_height};
-    case CSD_SURF_MAXIMIZE: return (struct csd_data){button_maximize_start, 0, button_maximize_width, title_height};
-    case CSD_SURF_CLOSE:    return (struct csd_data){   button_close_start, 0,    button_close_width, title_height};
+    case CSD_SURF_MINIMIZE:
+        return (struct csd_data){button_minimize_start, 0, button_minimize_width, title_height};
+    case CSD_SURF_MAXIMIZE:
+        return (struct csd_data){button_maximize_start, 0, button_maximize_width, title_height};
+    case CSD_SURF_CLOSE:
+        return (struct csd_data){button_close_start, 0, button_close_width, title_height};
 
     case CSD_SURF_COUNT:
         break;
@@ -2375,8 +2318,7 @@ get_csd_data(const struct terminal *term, enum csd_surface surf_idx)
 }
 
 static void
-csd_commit(struct terminal *term, struct wayl_surface *surf, struct buffer *buf)
-{
+csd_commit(struct terminal *term, struct wayl_surface *surf, struct vk_buffer *buf) {
     wayl_surface_scale(term->window, surf, buf, term->scale);
     wl_surface_attach(surf->surf, buf->wl_buf, 0, 0);
     wl_surface_damage_buffer(surf->surf, 0, 0, buf->width, buf->height);
@@ -2385,9 +2327,8 @@ csd_commit(struct terminal *term, struct wayl_surface *surf, struct buffer *buf)
 
 static void
 render_csd_part(struct terminal *term,
-                struct wl_surface *surf, struct buffer *buf,
-                int width, int height, pixman_color_t *color)
-{
+                struct wl_surface *surf, struct vk_buffer *buf,
+                int width, int height, pixman_color_t *color) {
     xassert(term->window->csd_mode == CSD_YES);
 
     pixman_image_fill_rectangles(
@@ -2397,10 +2338,9 @@ render_csd_part(struct terminal *term,
 
 static void
 render_osd(struct terminal *term, const struct wayl_sub_surface *sub_surf,
-           struct fcft_font *font, struct buffer *buf,
+           struct fcft_font *font, struct vk_buffer *buf,
            const char32_t *text, uint32_t _fg, uint32_t _bg,
-           unsigned x)
-{
+           unsigned x) {
     pixman_region32_t clip;
     pixman_region32_init_rect(&clip, 0, 0, buf->width, buf->height);
     pixman_image_set_clip_region32(buf->pix[0], &clip);
@@ -2500,8 +2440,7 @@ render_osd(struct terminal *term, const struct wayl_sub_surface *sub_surf,
 
 static void
 render_csd_title(struct terminal *term, const struct csd_data *info,
-                 struct buffer *buf)
-{
+                 struct vk_buffer *buf) {
     xassert(term->window->csd_mode == CSD_YES);
 
     struct wayl_sub_surface *surf = &term->window->csd.surface[CSD_SURF_TITLE];
@@ -2509,11 +2448,11 @@ render_csd_title(struct terminal *term, const struct csd_data *info,
         return;
 
     uint32_t bg = term->conf->csd.color.title_set
-        ? term->conf->csd.color.title
-        : 0xffu << 24 | term->conf->colors_dark.fg;
+                      ? term->conf->csd.color.title
+                      : 0xffu << 24 | term->conf->colors_dark.fg;
     uint32_t fg = term->conf->csd.color.buttons_set
-        ? term->conf->csd.color.buttons
-        : term->conf->colors_dark.bg;
+                      ? term->conf->csd.color.buttons
+                      : term->conf->colors_dark.bg;
 
     if (!term->visual_focus) {
         bg = color_dim(term, bg);
@@ -2537,8 +2476,7 @@ render_csd_title(struct terminal *term, const struct csd_data *info,
 
 static void
 render_csd_border(struct terminal *term, enum csd_surface surf_idx,
-                  const struct csd_data *info, struct buffer *buf)
-{
+                  const struct csd_data *info, struct vk_buffer *buf) {
     xassert(term->window->csd_mode == CSD_YES);
     xassert(surf_idx >= CSD_SURF_LEFT && surf_idx <= CSD_SURF_BOTTOM);
 
@@ -2569,7 +2507,6 @@ render_csd_border(struct terminal *term, enum csd_surface surf_idx,
 
         const struct config *conf = term->conf;
         int x = 0, y = 0, w = 0, h = 0;
-
 
         switch (surf_idx) {
         case CSD_SURF_TOP:
@@ -2605,9 +2542,8 @@ render_csd_border(struct terminal *term, enum csd_surface surf_idx,
         xassert(y + h <= info->height);
 
         uint32_t _color =
-            conf->csd.color.border_set ? conf->csd.color.border :
-            conf->csd.color.title_set ? conf->csd.color.title :
-            0xffu << 24 | term->conf->colors_dark.fg;
+            conf->csd.color.border_set ? conf->csd.color.border : conf->csd.color.title_set ? conf->csd.color.title
+                                                                                            : 0xffu << 24 | term->conf->colors_dark.fg;
         if (!term->visual_focus)
             _color = color_dim(term, _color);
 
@@ -2624,8 +2560,7 @@ render_csd_border(struct terminal *term, enum csd_surface surf_idx,
 }
 
 static pixman_color_t
-get_csd_button_fg_color(const struct terminal *term)
-{
+get_csd_button_fg_color(const struct terminal *term) {
     const struct config *conf = term->conf;
     uint32_t _color = conf->colors_dark.bg;
     uint16_t alpha = 0xffff;
@@ -2640,8 +2575,7 @@ get_csd_button_fg_color(const struct terminal *term)
 }
 
 static void
-render_csd_button_minimize(struct terminal *term, struct buffer *buf)
-{
+render_csd_button_minimize(struct terminal *term, struct vk_buffer *buf) {
     pixman_color_t color = get_csd_button_fg_color(term);
     pixman_image_t *src = pixman_image_create_solid_fill(&color);
 
@@ -2659,17 +2593,15 @@ render_csd_button_minimize(struct terminal *term, struct buffer *buf)
     xassert(y_margin + width - thick >= 0);
     pixman_image_fill_rectangles(
         PIXMAN_OP_SRC, buf->pix[0], &color, 1,
-        (pixman_rectangle16_t[]) {
-            {x_margin, y_margin + width - thick, width, thick}
-    });
+        (pixman_rectangle16_t[]){
+            {x_margin, y_margin + width - thick, width, thick}});
 
     pixman_image_unref(src);
 }
 
 static void
 render_csd_button_maximize_maximized(
-    struct terminal *term, struct buffer *buf)
-{
+    struct terminal *term, struct vk_buffer *buf) {
     pixman_color_t color = get_csd_button_fg_color(term);
     pixman_image_t *src = pixman_image_create_solid_fill(&color);
 
@@ -2690,18 +2622,16 @@ render_csd_button_maximize_maximized(
         PIXMAN_OP_SRC, buf->pix[0], &color, 4,
         (pixman_rectangle16_t[]){
             {x_margin + shrink, y_margin + shrink, width - 2 * shrink, thick},
-            { x_margin + shrink, y_margin + thick, thick, width - 2 * thick - shrink },
-            { x_margin + width - thick - shrink, y_margin + thick, thick, width - 2 * thick - shrink },
-            { x_margin + shrink, y_margin + width - thick - shrink, width - 2 * shrink, thick }});
+            {x_margin + shrink, y_margin + thick, thick, width - 2 * thick - shrink},
+            {x_margin + width - thick - shrink, y_margin + thick, thick, width - 2 * thick - shrink},
+            {x_margin + shrink, y_margin + width - thick - shrink, width - 2 * shrink, thick}});
 
     pixman_image_unref(src);
-
 }
 
 static void
 render_csd_button_maximize_window(
-    struct terminal *term, struct buffer *buf)
-{
+    struct terminal *term, struct vk_buffer *buf) {
     pixman_color_t color = get_csd_button_fg_color(term);
     pixman_image_t *src = pixman_image_create_solid_fill(&color);
 
@@ -2720,19 +2650,17 @@ render_csd_button_maximize_window(
 
     pixman_image_fill_rectangles(
         PIXMAN_OP_SRC, buf->pix[0], &color, 4,
-        (pixman_rectangle16_t[]) {
+        (pixman_rectangle16_t[]){
             {x_margin, y_margin, width, thick},
-            { x_margin, y_margin + thick, thick, width - 2 * thick },
-            { x_margin + width - thick, y_margin + thick, thick, width - 2 * thick },
-            { x_margin, y_margin + width - thick, width, thick }
-    });
+            {x_margin, y_margin + thick, thick, width - 2 * thick},
+            {x_margin + width - thick, y_margin + thick, thick, width - 2 * thick},
+            {x_margin, y_margin + width - thick, width, thick}});
 
     pixman_image_unref(src);
 }
 
 static void
-render_csd_button_maximize(struct terminal *term, struct buffer *buf)
-{
+render_csd_button_maximize(struct terminal *term, struct vk_buffer *buf) {
     if (term->window->is_maximized)
         render_csd_button_maximize_maximized(term, buf);
     else
@@ -2740,8 +2668,7 @@ render_csd_button_maximize(struct terminal *term, struct buffer *buf)
 }
 
 static void
-render_csd_button_close(struct terminal *term, struct buffer *buf)
-{
+render_csd_button_close(struct terminal *term, struct vk_buffer *buf) {
     pixman_color_t color = get_csd_button_fg_color(term);
     pixman_image_t *src = pixman_image_create_solid_fill(&color);
 
@@ -2827,8 +2754,7 @@ render_csd_button_close(struct terminal *term, struct buffer *buf)
 }
 
 static bool
-any_pointer_is_on_button(const struct terminal *term, enum csd_surface csd_surface)
-{
+any_pointer_is_on_button(const struct terminal *term, enum csd_surface csd_surface) {
     if (unlikely(tll_length(term->wl->seats) == 0))
         return false;
 
@@ -2854,8 +2780,7 @@ any_pointer_is_on_button(const struct terminal *term, enum csd_surface csd_surfa
 
 static void
 render_csd_button(struct terminal *term, enum csd_surface surf_idx,
-                  const struct csd_data *info, struct buffer *buf)
-{
+                  const struct csd_data *info, struct vk_buffer *buf) {
     xassert(term->window->csd_mode == CSD_YES);
     xassert(surf_idx >= CSD_SURF_MINIMIZE && surf_idx <= CSD_SURF_CLOSE);
 
@@ -2872,7 +2797,7 @@ render_csd_button(struct terminal *term, enum csd_surface surf_idx,
 
     switch (surf_idx) {
     case CSD_SURF_MINIMIZE:
-        _color = term->conf->colors_dark.table[4];  /* blue */
+        _color = term->conf->colors_dark.table[4]; /* blue */
         is_set = term->conf->csd.color.minimize_set;
         conf_color = &term->conf->csd.color.minimize;
         is_active = term->active_surface == TERM_SURF_BUTTON_MINIMIZE &&
@@ -2880,7 +2805,7 @@ render_csd_button(struct terminal *term, enum csd_surface surf_idx,
         break;
 
     case CSD_SURF_MAXIMIZE:
-        _color = term->conf->colors_dark.table[2];  /* green */
+        _color = term->conf->colors_dark.table[2]; /* green */
         is_set = term->conf->csd.color.maximize_set;
         conf_color = &term->conf->csd.color.maximize;
         is_active = term->active_surface == TERM_SURF_BUTTON_MAXIMIZE &&
@@ -2888,7 +2813,7 @@ render_csd_button(struct terminal *term, enum csd_surface surf_idx,
         break;
 
     case CSD_SURF_CLOSE:
-        _color = term->conf->colors_dark.table[1];  /* red */
+        _color = term->conf->colors_dark.table[1]; /* red */
         is_set = term->conf->csd.color.close_set;
         conf_color = &term->conf->csd.color.quit;
         is_active = term->active_surface == TERM_SURF_BUTTON_CLOSE &&
@@ -2918,9 +2843,15 @@ render_csd_button(struct terminal *term, enum csd_surface surf_idx,
     render_csd_part(term, surf->surf, buf, info->width, info->height, &color);
 
     switch (surf_idx) {
-    case CSD_SURF_MINIMIZE: render_csd_button_minimize(term, buf); break;
-    case CSD_SURF_MAXIMIZE: render_csd_button_maximize(term, buf); break;
-    case CSD_SURF_CLOSE:    render_csd_button_close(term, buf); break;
+    case CSD_SURF_MINIMIZE:
+        render_csd_button_minimize(term, buf);
+        break;
+    case CSD_SURF_MAXIMIZE:
+        render_csd_button_maximize(term, buf);
+        break;
+    case CSD_SURF_CLOSE:
+        render_csd_button_close(term, buf);
+        break;
 
     default:
         BUG("unhandled surface type: %u", (unsigned)surf_idx);
@@ -2931,8 +2862,7 @@ render_csd_button(struct terminal *term, enum csd_surface surf_idx,
 }
 
 static void
-render_csd(struct terminal *term)
-{
+render_csd(struct terminal *term) {
     xassert(term->window->csd_mode == CSD_YES);
 
     if (term->window->is_fullscreen)
@@ -2969,8 +2899,8 @@ render_csd(struct terminal *term)
         wl_subsurface_set_position(sub, roundf(x / scale), roundf(y / scale));
     }
 
-    struct buffer *bufs[CSD_SURF_COUNT];
-    shm_get_many(term->render.chains.csd, CSD_SURF_COUNT, widths, heights, bufs);
+    struct vk_buffer *bufs[CSD_SURF_COUNT];
+    vk_get_many(term->render.chains.csd, CSD_SURF_COUNT, widths, heights, bufs, true);
 
     for (size_t i = CSD_SURF_LEFT; i <= CSD_SURF_BOTTOM; i++)
         render_csd_border(term, i, &infos[i], bufs[i]);
@@ -2980,8 +2910,7 @@ render_csd(struct terminal *term)
 }
 
 static void
-render_scrollback_position(struct terminal *term)
-{
+render_scrollback_position(struct terminal *term) {
     if (term->conf->scrollback.indicator.position == SCROLLBACK_INDICATOR_POSITION_NONE)
         return;
 
@@ -2995,8 +2924,7 @@ render_scrollback_position(struct terminal *term)
 
     if (win->scrollback_indicator.surface.surf == NULL) {
         if (!wayl_win_subsurface_new(
-                win, &win->scrollback_indicator, false))
-        {
+                win, &win->scrollback_indicator, false)) {
             LOG_ERR("failed to create scrollback indicator surface");
             return;
         }
@@ -3031,8 +2959,8 @@ render_scrollback_position(struct terminal *term)
      */
     double percent =
         rebased_view + term->rows == populated_rows
-        ? 1.0
-        : (double)rebased_view / (populated_rows - term->rows);
+            ? 1.0
+            : (double)rebased_view / (populated_rows - term->rows);
 
     char32_t _text[64];
     const char32_t *text = _text;
@@ -3083,7 +3011,7 @@ render_scrollback_position(struct terminal *term)
         break;
 
     case SCROLLBACK_INDICATOR_POSITION_RELATIVE: {
-        int lines = term->rows - 2;  /* Avoid using first and last rows */
+        int lines = term->rows - 2; /* Avoid using first and last rows */
         if (term->is_searching) {
             /* Make sure we don't collide with the scrollback search box */
             lines--;
@@ -3109,8 +3037,8 @@ render_scrollback_position(struct terminal *term)
         return;
     }
 
-    struct buffer_chain *chain = term->render.chains.scrollback_indicator;
-    struct buffer *buf = shm_get_buffer(chain, width, height);
+    struct vk_buffer_chain *chain = term->render.chains.scrollback_indicator;
+    struct vk_buffer *buf = vk_get_buffer(chain, width, height, true);
 
     wl_subsurface_set_position(
         win->scrollback_indicator.sub, roundf(x / scale), roundf(y / scale));
@@ -3131,8 +3059,7 @@ render_scrollback_position(struct terminal *term)
 }
 
 static void
-render_render_timer(struct terminal *term, struct timespec render_time)
-{
+render_render_timer(struct terminal *term, struct timespec render_time) {
     struct wl_window *win = term->window;
 
     char usecs_str[256];
@@ -3152,8 +3079,8 @@ render_render_timer(struct terminal *term, struct timespec render_time)
     width = roundf(scale * ceilf(width / scale));
     height = roundf(scale * ceilf(height / scale));
 
-    struct buffer_chain *chain = term->render.chains.render_timer;
-    struct buffer *buf = shm_get_buffer(chain, width, height);
+    struct vk_buffer_chain *chain = term->render.chains.render_timer;
+    struct vk_buffer *buf = vk_get_buffer(chain, width, height, true);
 
     wl_subsurface_set_position(
         win->render_timer.sub,
@@ -3176,16 +3103,14 @@ static const struct wl_callback_listener frame_listener = {
 };
 
 static void
-force_full_repaint(struct terminal *term, struct buffer *buf)
-{
+force_full_repaint(struct terminal *term, struct vk_buffer *buf) {
     tll_free(term->grid->scroll_damage);
     render_margin(term, buf, 0, term->rows, true);
     term_damage_view(term);
 }
 
 static void
-reapply_old_damage(struct terminal *term, struct buffer *new, struct buffer *old)
-{
+reapply_old_damage(struct terminal *term, struct vk_buffer *new, struct vk_buffer *old) {
     if (new->age > 1) {
         memcpy(new->data, old->data, new->height * new->stride);
         return;
@@ -3281,8 +3206,7 @@ reapply_old_damage(struct terminal *term, struct buffer *new, struct buffer *old
 }
 
 static void
-dirty_old_cursor(struct terminal *term)
-{
+dirty_old_cursor(struct terminal *term) {
     if (term->render.last_cursor.row != NULL && !term->render.last_cursor.hidden) {
         struct row *row = term->render.last_cursor.row;
         struct cell *cell = &row->cells[term->render.last_cursor.col];
@@ -3297,8 +3221,7 @@ dirty_old_cursor(struct terminal *term)
 }
 
 static void
-dirty_cursor(struct terminal *term)
-{
+dirty_cursor(struct terminal *term) {
     if (term->hide_cursor)
         return;
 
@@ -3311,8 +3234,7 @@ dirty_cursor(struct terminal *term)
 }
 
 static void
-grid_render(struct terminal *term)
-{
+grid_render(struct terminal *term) {
     if (term->shutdown.in_progress)
         return;
 
@@ -3322,8 +3244,7 @@ grid_render(struct terminal *term)
 
     /* Might be a thread doing pre-applied damage */
     if (unlikely(term->render.preapply_last_frame_damage &&
-                 term->render.workers.preapplied_damage.buf != NULL))
-    {
+                 term->render.workers.preapplied_damage.buf != NULL)) {
         clock_gettime(CLOCK_MONOTONIC, &start_wait_preapply);
         wait_for_preapply_damage(term);
         clock_gettime(CLOCK_MONOTONIC, &stop_wait_preapply);
@@ -3335,8 +3256,8 @@ grid_render(struct terminal *term)
     xassert(term->width > 0);
     xassert(term->height > 0);
 
-    struct buffer_chain *chain = term->render.chains.grid;
-    struct buffer *buf = shm_get_buffer(chain, term->width, term->height);
+    struct vk_buffer_chain *chain = term->render.chains.grid;
+    struct vk_buffer *buf = vk_get_buffer(chain, term->width, term->height, true);
 
     /* Dirty old and current cursor cell, to ensure they're repainted */
     dirty_old_cursor(term);
@@ -3347,8 +3268,7 @@ grid_render(struct terminal *term)
     if (term->render.last_buf == NULL ||
         term->render.last_buf->width != buf->width ||
         term->render.last_buf->height != buf->height ||
-        term->render.margins)
-    {
+        term->render.margins) {
         force_full_repaint(term, buf);
     }
 
@@ -3365,8 +3285,7 @@ grid_render(struct terminal *term)
 
             if (!term->render.preapply_last_frame_damage &&
                 term->conf->tweak.preapply_damage &&
-                term->render.workers.count > 0)
-            {
+                term->render.workers.count > 0) {
                 LOG_INFO("enabling pre-applied frame damage");
                 term->render.preapply_last_frame_damage = true;
             } else if (!have_warned && !term->render.preapply_last_frame_damage) {
@@ -3384,14 +3303,13 @@ grid_render(struct terminal *term)
     }
 
     if (term->render.last_buf != NULL) {
-        shm_unref(term->render.last_buf);
+        vk_unref(term->render.last_buf);
         term->render.last_buf = NULL;
     }
 
     term->render.last_buf = buf;
-    shm_addref(buf);
+    vk_addref(buf);
     buf->age = 0;
-
 
     tll_foreach(term->grid->scroll_damage, it) {
         switch (it->item.type) {
@@ -3467,8 +3385,7 @@ grid_render(struct terminal *term)
             /* Loop row from left to right, looking for dirty cells */
             for (struct cell *cell = &row->cells[0];
                  cell < &row->cells[term->cols];
-                 cell++)
-            {
+                 cell++) {
                 if (cell->attrs.clean)
                     continue;
 
@@ -3541,7 +3458,6 @@ grid_render(struct terminal *term)
     pixman_region32_init(&damage);
 
     render_sixel_images(term, buf->pix[0], &damage, &cursor);
-
 
     if (term->render.workers.count > 0) {
         mtx_lock(&term->render.workers.lock);
@@ -3707,8 +3623,7 @@ grid_render(struct terminal *term)
 }
 
 static void
-render_search_box(struct terminal *term)
-{
+render_search_box(struct terminal *term) {
     xassert(term->window->search.sub != NULL);
 
     /*
@@ -3736,7 +3651,7 @@ render_search_box(struct terminal *term)
     if (ime_seat != NULL && ime_seat->ime.preedit.text != NULL)
         text_len += c32len(ime_seat->ime.preedit.text);
 
-    char32_t *text = xmalloc((text_len + 1) *  sizeof(char32_t));
+    char32_t *text = xmalloc((text_len + 1) * sizeof(char32_t));
     text[0] = U'\0';
 
     /* Copy everything up to the cursor */
@@ -3783,8 +3698,8 @@ render_search_box(struct terminal *term)
     const size_t visible_cells = (visible_width - 2 * margin) / term->cell_width;
     size_t glyph_offset = term->render.search_glyph_offset;
 
-    struct buffer_chain *chain = term->render.chains.search;
-    struct buffer *buf = shm_get_buffer(chain, width, height);
+    struct vk_buffer_chain *chain = term->render.chains.search;
+    struct vk_buffer *buf = vk_get_buffer(chain, width, height, true);
 
     pixman_region32_t clip;
     pixman_region32_init_rect(&clip, 0, 0, width, height);
@@ -3796,19 +3711,19 @@ render_search_box(struct terminal *term)
 
     const bool is_match = term->search.match_len == text_len;
     const bool custom_colors = is_match
-        ? term->conf->colors_dark.use_custom.search_box_match
-        : term->conf->colors_dark.use_custom.search_box_no_match;
+                                   ? term->conf->colors_dark.use_custom.search_box_match
+                                   : term->conf->colors_dark.use_custom.search_box_no_match;
 
     /* Background - yellow on empty/match, red on mismatch (default) */
     const bool gamma_correct = wayl_do_linear_blending(term->wl, term->conf);
     const pixman_color_t color = color_hex_to_pixman(
         is_match
-        ? (custom_colors
-           ? term->conf->colors_dark.search_box.match.bg
-           : term->colors.table[3])
-        : (custom_colors
-           ? term->conf->colors_dark.search_box.no_match.bg
-           : term->colors.table[1]),
+            ? (custom_colors
+                   ? term->conf->colors_dark.search_box.match.bg
+                   : term->colors.table[3])
+            : (custom_colors
+                   ? term->conf->colors_dark.search_box.no_match.bg
+                   : term->colors.table[1]),
         gamma_correct);
 
     pixman_image_fill_rectangles(
@@ -3828,10 +3743,10 @@ render_search_box(struct terminal *term)
 
     pixman_color_t fg = color_hex_to_pixman(
         custom_colors
-        ? (is_match
-           ? term->conf->colors_dark.search_box.match.fg
-           : term->conf->colors_dark.search_box.no_match.fg)
-        : term->colors.table[0],
+            ? (is_match
+                   ? term->conf->colors_dark.search_box.match.fg
+                   : term->conf->colors_dark.search_box.no_match.fg)
+            : term->colors.table[0],
         gamma_correct);
 
     /* Move offset we start rendering at, to ensure the cursor is visible */
@@ -3891,16 +3806,15 @@ render_search_box(struct terminal *term)
      * glyph_offset is in cells, not characters
      */
     for (size_t i = 0,
-             cell_idx = 0,
-             width = widths[i],
-             next_cell_idx = width;
+                cell_idx = 0,
+                width = widths[i],
+                next_cell_idx = width;
          i < text_len;
          i++,
-             cell_idx = next_cell_idx,
-             width = widths[i],
-             next_cell_idx += width)
-    {
-    /* Convert subsurface coordinates to window coordinates*/
+                cell_idx = next_cell_idx,
+                width = widths[i],
+                next_cell_idx += width) {
+        /* Convert subsurface coordinates to window coordinates*/
         /* Render cursor */
         if (i == term->search.cursor) {
 #if defined(FOOT_IME_ENABLED) && FOOT_IME_ENABLED
@@ -3913,14 +3827,12 @@ render_search_box(struct terminal *term)
                 /* Cursor may be outside the visible area:
                  * cell_idx-glyph_offset can be negative */
                 int cells_left = visible_cells - max(
-                    (ssize_t)(cell_idx - glyph_offset), 0);
+                                                     (ssize_t)(cell_idx - glyph_offset), 0);
 
                 /* If cursor is outside the visible area, we need to
                  * adjust our rectangle's position */
-                int start = ime_seat->ime.preedit.cursor.start
-                    + min((ssize_t)(cell_idx - glyph_offset), 0);
-                int end = ime_seat->ime.preedit.cursor.end
-                    + min((ssize_t)(cell_idx - glyph_offset), 0);
+                int start = ime_seat->ime.preedit.cursor.start + min((ssize_t)(cell_idx - glyph_offset), 0);
+                int end = ime_seat->ime.preedit.cursor.end + min((ssize_t)(cell_idx - glyph_offset), 0);
 
                 if (start == end) {
                     int count = min(ime_seat->ime.preedit.count, cells_left);
@@ -3936,8 +3848,8 @@ render_search_box(struct terminal *term)
                     }
 
                     term_ime_set_cursor_rect(term,
-                        WINDOW_X(x + start * term->cell_width), WINDOW_Y(y),
-                        1, term->cell_height);
+                                             WINDOW_X(x + start * term->cell_width), WINDOW_Y(y),
+                                             1, term->cell_height);
                 } else {
                     /* Underline everything before and after the cursor */
                     int count1 = min(start, cells_left);
@@ -3954,8 +3866,8 @@ render_search_box(struct terminal *term)
                             term, buf->pix[0], &fg, x + start * term->cell_width, y, end - start);
                     }
                     term_ime_set_cursor_rect(term,
-                        WINDOW_X(x + start * term->cell_width), WINDOW_Y(y),
-                        term->cell_width * (end - start), term->cell_height);
+                                             WINDOW_X(x + start * term->cell_width), WINDOW_Y(y),
+                                             term->cell_width * (end - start), term->cell_height);
                 }
             } else if (!have_preedit)
 #endif
@@ -3995,16 +3907,16 @@ render_search_box(struct terminal *term)
                 glyph->width, glyph->height);
         } else {
             int combining_ofs = width == 0
-                ? (glyph->x < 0
-                   ? width * term->cell_width
-                   : (width - 1) * term->cell_width)
-                : 0;  /* Not a zero-width character - no additional offset */
+                                    ? (glyph->x < 0
+                                           ? width * term->cell_width
+                                           : (width - 1) * term->cell_width)
+                                    : 0; /* Not a zero-width character - no additional offset */
             pixman_image_t *src = pixman_image_create_solid_fill(&fg);
             pixman_image_composite32(
                 PIXMAN_OP_OVER, src, glyph->pix, buf->pix[0], 0, 0, 0, 0,
                 x + x_ofs + combining_ofs + glyph->x,
                 y + term->font_baseline - glyph->y,
-            glyph->width, glyph->height);
+                glyph->width, glyph->height);
             pixman_image_unref(src);
         }
 
@@ -4013,15 +3925,15 @@ render_search_box(struct terminal *term)
     }
 
 #if defined(FOOT_IME_ENABLED) && FOOT_IME_ENABLED
-        if (ime_seat != NULL && ime_seat->ime.preedit.cells != NULL)
-            /* Already rendered */;
-        else
+    if (ime_seat != NULL && ime_seat->ime.preedit.cells != NULL)
+        /* Already rendered */;
+    else
 #endif
         if (term->search.cursor >= term->search.len) {
-            draw_beam_cursor(term, buf->pix[0], font, &fg, x, y);
-            term_ime_set_cursor_rect(
-                term, WINDOW_X(x), WINDOW_Y(y), 1, term->cell_height);
-        }
+        draw_beam_cursor(term, buf->pix[0], font, &fg, x, y);
+        term_ime_set_cursor_rect(
+            term, WINDOW_X(x), WINDOW_Y(y), 1, term->cell_height);
+    }
 
     quirk_weston_subsurface_desync_on(term->window->search.sub);
 
@@ -4053,8 +3965,7 @@ render_search_box(struct terminal *term)
 }
 
 static void
-render_urls(struct terminal *term)
-{
+render_urls(struct terminal *term) {
     struct wl_window *win = term->window;
     xassert(tll_length(win->urls) > 0);
 
@@ -4063,12 +3974,8 @@ render_urls(struct terminal *term)
     const int y_margin = (int)roundf(1 * scale);
 
     /* Calculate view start, counted from the *current* scrollback start */
-    const int scrollback_end
-        = (term->grid->offset + term->rows) & (term->grid->num_rows - 1);
-    const int view_start
-        = (term->grid->view
-           - scrollback_end
-           + term->grid->num_rows) & (term->grid->num_rows - 1);
+    const int scrollback_end = (term->grid->offset + term->rows) & (term->grid->num_rows - 1);
+    const int view_start = (term->grid->view - scrollback_end + term->grid->num_rows) & (term->grid->num_rows - 1);
     const int view_end = view_start + term->rows - 1;
 
     const bool show_url = term->urls_show_uri_on_jump_label;
@@ -4131,10 +4038,7 @@ render_urls(struct terminal *term)
 
         bool hide = false;
         const struct coord *pos = &url->range.start;
-        const int _row
-            = (pos->row
-               - scrollback_end
-               + term->grid->num_rows) & (term->grid->num_rows - 1);
+        const int _row = (pos->row - scrollback_end + term->grid->num_rows) & (term->grid->num_rows - 1);
 
         if (_row < view_start || _row > view_end)
             hide = true;
@@ -4247,16 +4151,16 @@ render_urls(struct terminal *term)
         render_count++;
     }
 
-    struct buffer_chain *chain = term->render.chains.url;
-    struct buffer *bufs[render_count];
-    shm_get_many(chain, render_count, widths, heights, bufs);
+    struct vk_buffer_chain *chain = term->render.chains.url;
+    struct vk_buffer *bufs[render_count];
+    vk_get_many(chain, render_count, widths, heights, bufs, true);
 
     uint32_t fg = term->conf->colors_dark.use_custom.jump_label
-        ? term->conf->colors_dark.jump_label.fg
-        : term->colors.table[0];
+                      ? term->conf->colors_dark.jump_label.fg
+                      : term->colors.table[0];
     uint32_t bg = term->conf->colors_dark.use_custom.jump_label
-        ? term->conf->colors_dark.jump_label.bg
-        : term->colors.table[3];
+                      ? term->conf->colors_dark.jump_label.bg
+                      : term->colors.table[3];
 
     for (size_t i = 0; i < render_count; i++) {
         const struct wayl_sub_surface *sub_surf = &info[i].url->surf;
@@ -4282,8 +4186,7 @@ render_urls(struct terminal *term)
 }
 
 static void
-render_update_title(struct terminal *term)
-{
+render_update_title(struct terminal *term) {
     static const size_t max_len = 2048;
 
     const char *title = term->window_title != NULL ? term->window_title : "foot";
@@ -4299,8 +4202,7 @@ render_update_title(struct terminal *term)
 }
 
 static void
-frame_callback(void *data, struct wl_callback *wl_callback, uint32_t callback_data)
-{
+frame_callback(void *data, struct wl_callback *wl_callback, uint32_t callback_data) {
     struct terminal *term = data;
 
     xassert(term->window->frame_callback == wl_callback);
@@ -4347,16 +4249,14 @@ frame_callback(void *data, struct wl_callback *wl_callback, uint32_t callback_da
 }
 
 static void
-tiocswinsz(struct terminal *term)
-{
+tiocswinsz(struct terminal *term) {
     if (term->ptmx >= 0) {
         if (ioctl(term->ptmx, (unsigned int)TIOCSWINSZ,
-                     &(struct winsize){
-                         .ws_row = term->rows,
-                         .ws_col = term->cols,
-                         .ws_xpixel = term->cols * term->cell_width,
-                         .ws_ypixel = term->rows * term->cell_height}) < 0)
-        {
+                  &(struct winsize){
+                      .ws_row = term->rows,
+                      .ws_col = term->cols,
+                      .ws_xpixel = term->cols * term->cell_width,
+                      .ws_ypixel = term->rows * term->cell_height}) < 0) {
             LOG_ERRNO("TIOCSWINSZ");
         }
 
@@ -4365,8 +4265,7 @@ tiocswinsz(struct terminal *term)
 }
 
 static void
-delayed_reflow_of_normal_grid(struct terminal *term)
-{
+delayed_reflow_of_normal_grid(struct terminal *term) {
     if (term->interactive_resizing.grid == NULL)
         return;
 
@@ -4402,7 +4301,7 @@ delayed_reflow_of_normal_grid(struct terminal *term)
 
     /* Invalidate render pointers */
     wait_for_preapply_damage(term);
-    shm_unref(term->render.last_buf);
+    vk_unref(term->render.last_buf);
     term->render.last_buf = NULL;
     term->render.last_cursor.row = NULL;
 
@@ -4418,8 +4317,7 @@ delayed_reflow_of_normal_grid(struct terminal *term)
 }
 
 static bool
-fdm_tiocswinsz(struct fdm *fdm, int fd, int events, void *data)
-{
+fdm_tiocswinsz(struct fdm *fdm, int fd, int events, void *data) {
     struct terminal *term = data;
 
     if (events & EPOLLIN) {
@@ -4435,8 +4333,7 @@ fdm_tiocswinsz(struct fdm *fdm, int fd, int events, void *data)
 }
 
 static void
-send_dimensions_to_client(struct terminal *term)
-{
+send_dimensions_to_client(struct terminal *term) {
     struct wl_window *win = term->window;
 
     if (!win->is_resizing || term->conf->resize_delay_ms == 0) {
@@ -4495,8 +4392,7 @@ send_dimensions_to_client(struct terminal *term)
 }
 
 static void
-set_size_from_grid(struct terminal *term, int *width, int *height, int cols, int rows)
-{
+set_size_from_grid(struct terminal *term, int *width, int *height, int cols, int rows) {
     int new_width, new_height;
 
     /* Nominal grid dimensions */
@@ -4518,9 +4414,7 @@ set_size_from_grid(struct terminal *term, int *width, int *height, int cols, int
 }
 
 /* Move to terminal.c? */
-bool
-render_resize(struct terminal *term, int width, int height, uint8_t opts)
-{
+bool render_resize(struct terminal *term, int width, int height, uint8_t opts) {
     if (term->shutdown.in_progress)
         return false;
 
@@ -4618,8 +4512,7 @@ render_resize(struct terminal *term, int width, int height, uint8_t opts)
 
     if (is_floating &&
         (opts & RESIZE_BY_CELLS) &&
-        term->conf->resize_by_cells)
-    {
+        term->conf->resize_by_cells) {
         /* If resizing in cell increments, restrict the width and height */
         width = ((width - 2 * pad_x) / term->cell_width) * term->cell_width + 2 * pad_x;
         width = max(min_width, roundf(scale * roundf(width / scale)));
@@ -4631,8 +4524,7 @@ render_resize(struct terminal *term, int width, int height, uint8_t opts)
     if (!(opts & RESIZE_FORCE) &&
         width == term->width &&
         height == term->height &&
-        scale == term->scale)
-    {
+        scale == term->scale) {
         return false;
     }
 
@@ -4722,7 +4614,6 @@ render_resize(struct terminal *term, int width, int height, uint8_t opts)
         goto damage_view;
     }
 
-
     /*
      * Since text reflow is slow, don't do it *while* resizing. Only
      * do it when done, or after "pausing" the resize for sufficiently
@@ -4788,16 +4679,14 @@ render_resize(struct terminal *term, int width, int height, uint8_t opts)
 
         for (size_t i = 0, j = orig->view;
              i < term->interactive_resizing.old_screen_rows;
-             i++, j = (j + 1) & (orig->num_rows - 1))
-        {
+             i++, j = (j + 1) & (orig->num_rows - 1)) {
             g.rows[i] = grid_row_alloc(g.num_cols, false);
             memcpy(g.rows[i]->cells,
                    orig->rows[j]->cells,
                    g.num_cols * sizeof(g.rows[i]->cells[0]));
 
             if (orig->rows[j]->extra == NULL ||
-                orig->rows[j]->extra->underline_ranges.count == 0)
-            {
+                orig->rows[j]->extra->underline_ranges.count == 0) {
                 continue;
             }
 
@@ -4912,8 +4801,7 @@ render_resize(struct terminal *term, int width, int height, uint8_t opts)
     if (term->scroll_region.start >= term->rows)
         term->scroll_region.start = 0;
     if (term->scroll_region.end > term->rows ||
-        term->scroll_region.end >= old_rows)
-    {
+        term->scroll_region.end >= old_rows) {
         term->scroll_region.end = term->rows;
     }
 
@@ -4935,11 +4823,11 @@ damage_view:
         const bool border_shown = wayl_win_csd_borders_visible(term->window);
 
         const int title = title_shown
-            ? roundf(term->conf->csd.title_height * scale)
-            : 0;
+                              ? roundf(term->conf->csd.title_height * scale)
+                              : 0;
         const int border = border_shown
-            ? roundf(term->conf->csd.border_width_visible * scale)
-            : 0;
+                               ? roundf(term->conf->csd.border_width_visible * scale)
+                               : 0;
 
         /* Must use surface logical coordinates (same calculations as
            in get_csd_data(), but with different inputs) */
@@ -4977,7 +4865,7 @@ damage_view:
     tll_free(term->alt.scroll_damage);
 
     wait_for_preapply_damage(term);
-    shm_unref(term->render.last_buf);
+    vk_unref(term->render.last_buf);
     term->render.last_buf = NULL;
     term_damage_view(term);
     render_refresh_csd(term);
@@ -4993,9 +4881,7 @@ static const struct wl_callback_listener xcursor_listener = {
     .done = &xcursor_callback,
 };
 
-bool
-render_xcursor_is_valid(const struct seat *seat, const char *cursor)
-{
+bool render_xcursor_is_valid(const struct seat *seat, const char *cursor) {
     if (cursor == NULL)
         return false;
     if (seat->pointer.theme == NULL)
@@ -5004,8 +4890,7 @@ render_xcursor_is_valid(const struct seat *seat, const char *cursor)
 }
 
 static void
-render_xcursor_update(struct seat *seat)
-{
+render_xcursor_update(struct seat *seat) {
     /* If called from a frame callback, we may no longer have mouse focus */
     if (!seat->mouse_focus)
         return;
@@ -5031,16 +4916,16 @@ render_xcursor_update(struct seat *seat)
 
         const enum wp_cursor_shape_device_v1_shape custom_shape =
             (shape == CURSOR_SHAPE_CUSTOM && xcursor != NULL
-                ? cursor_string_to_server_shape(
-                    xcursor, seat->wayl->shape_manager_version)
-                : 0);
+                 ? cursor_string_to_server_shape(
+                       xcursor, seat->wayl->shape_manager_version)
+                 : 0);
 
         if (shape != CURSOR_SHAPE_CUSTOM || custom_shape != 0) {
             xassert(custom_shape == 0 || shape == CURSOR_SHAPE_CUSTOM);
 
             const enum wp_cursor_shape_device_v1_shape wp_shape = custom_shape != 0
-                ? custom_shape
-                : cursor_shape_to_server_shape(shape);
+                                                                      ? custom_shape
+                                                                      : cursor_shape_to_server_shape(shape);
 
             LOG_DBG("setting %scursor shape using cursor-shape-v1",
                     custom_shape != 0 ? "custom " : "");
@@ -5100,8 +4985,7 @@ render_xcursor_update(struct seat *seat)
 }
 
 static void
-xcursor_callback(void *data, struct wl_callback *wl_callback, uint32_t callback_data)
-{
+xcursor_callback(void *data, struct wl_callback *wl_callback, uint32_t callback_data) {
     struct seat *seat = data;
 
     xassert(seat->pointer.xcursor_callback == wl_callback);
@@ -5115,8 +4999,7 @@ xcursor_callback(void *data, struct wl_callback *wl_callback, uint32_t callback_
 }
 
 static void
-fdm_hook_refresh_pending_terminals(struct fdm *fdm, void *data)
-{
+fdm_hook_refresh_pending_terminals(struct fdm *fdm, void *data) {
     struct renderer *renderer = data;
     struct wayland *wayl = renderer->wayl;
 
@@ -5188,9 +5071,7 @@ fdm_hook_refresh_pending_terminals(struct fdm *fdm, void *data)
     }
 }
 
-void
-render_refresh_title(struct terminal *term)
-{
+void render_refresh_title(struct terminal *term) {
     struct timespec now;
     if (clock_gettime(CLOCK_MONOTONIC, &now) < 0)
         return;
@@ -5212,9 +5093,7 @@ render_refresh_title(struct terminal *term)
     render_refresh_csd(term);
 }
 
-void
-render_refresh_app_id(struct terminal *term)
-{
+void render_refresh_app_id(struct terminal *term) {
     struct timespec now;
     if (clock_gettime(CLOCK_MONOTONIC, &now) < 0)
         return;
@@ -5238,9 +5117,7 @@ render_refresh_app_id(struct terminal *term)
     term->render.app_id.last_update = now;
 }
 
-void
-render_refresh_icon(struct terminal *term)
-{
+void render_refresh_icon(struct terminal *term) {
     if (term->wl->toplevel_icon_manager == NULL) {
         LOG_DBG("compositor does not implement xdg-toplevel-icon: "
                 "ignoring request to refresh window icon");
@@ -5276,37 +5153,27 @@ render_refresh_icon(struct terminal *term)
     term->render.icon.last_update = now;
 }
 
-void
-render_refresh(struct terminal *term)
-{
+void render_refresh(struct terminal *term) {
     term->render.refresh.grid = true;
 }
 
-void
-render_refresh_csd(struct terminal *term)
-{
+void render_refresh_csd(struct terminal *term) {
     if (term->window->csd_mode == CSD_YES)
         term->render.refresh.csd = true;
 }
 
-void
-render_refresh_search(struct terminal *term)
-{
+void render_refresh_search(struct terminal *term) {
     if (term->is_searching)
         term->render.refresh.search = true;
 }
 
-void
-render_refresh_urls(struct terminal *term)
-{
+void render_refresh_urls(struct terminal *term) {
     if (urls_mode_is_active(term))
         term->render.refresh.urls = true;
 }
 
-bool
-render_xcursor_set(struct seat *seat, struct terminal *term,
-                   enum cursor_shape shape)
-{
+bool render_xcursor_set(struct seat *seat, struct terminal *term,
+                        enum cursor_shape shape) {
     if (seat->pointer.theme == NULL && seat->pointer.shape_device == NULL)
         return false;
 
@@ -5323,8 +5190,7 @@ render_xcursor_set(struct seat *seat, struct terminal *term,
     if (seat->pointer.shape == shape &&
         !(shape == CURSOR_SHAPE_CUSTOM &&
           !streq(seat->pointer.last_custom_xcursor,
-                 term->mouse_user_cursor)))
-    {
+                 term->mouse_user_cursor))) {
         return true;
     }
 
@@ -5337,8 +5203,8 @@ render_xcursor_set(struct seat *seat, struct terminal *term,
     else if (seat->pointer.shape_device == NULL) {
         const char *const custom_xcursors[] = {term->mouse_user_cursor, NULL};
         const char *const *xcursors = shape == CURSOR_SHAPE_CUSTOM
-            ? custom_xcursors
-            : cursor_shape_to_string(shape);
+                                          ? custom_xcursors
+                                          : cursor_shape_to_string(shape);
 
         xassert(xcursors[0] != NULL);
 
@@ -5376,9 +5242,7 @@ render_xcursor_set(struct seat *seat, struct terminal *term,
     return true;
 }
 
-void
-render_buffer_release_callback(struct buffer *buf, void *data)
-{
+void render_buffer_release_callback(struct vk_buffer *buf, void *data) {
     /*
      * Called from shm.c when a buffer is released
      *
