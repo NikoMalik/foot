@@ -26,6 +26,10 @@
 #include "vulkan.h"
 #include "wayland.h"
 
+#if defined(FOOT_IO_URING)
+#include <liburing.h>
+#endif
+
 enum color_source {
     COLOR_DEFAULT,
     COLOR_BASE16,
@@ -446,6 +450,18 @@ struct terminal {
 
     pid_t slave;
     int ptmx;
+
+#if defined(FOOT_IO_URING)
+    struct {
+        struct io_uring ring;
+        struct io_uring_buf_ring *bring;
+
+        uint8_t **buffers;
+        int bgid;
+        unsigned int bsize;
+        unsigned int bcount;
+    } uring;
+#endif
 
     struct vt vt;
     struct grid *grid;

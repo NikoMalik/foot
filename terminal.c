@@ -229,6 +229,154 @@ static bool cursor_blink_rearm_timer(struct terminal *term);
 
 /* Externally visible, but not declared in terminal.h, to enable pgo
  * to call this function directly */
+#if defined(FOOT_IO_URING)
+static bool
+fdm_ptmx_eventfd(struct fdm *fdm, int fd, int events, void *data) {
+    struct terminal *term = data;
+
+    /* Prevent blinking while typing */
+    if (term->cursor_blink.fd >= 0) {
+        term->cursor_blink.state = CURSOR_BLINK_ON;
+        cursor_blink_rearm_timer(term);
+    }
+
+    if (unlikely(term->interactive_resizing.grid != NULL)) {
+        /*
+         * Don't consume PTMX while we're doing an interactive resize,
+         * since the 'normal' grid we're currently using is a
+         * temporary one - all changes done to it will be lost when
+         * the interactive resize ends.
+         */
+        return true;
+    }
+
+    // const size_t max_iterations = !hup ? 10 : SIZE_MAX;
+    const size_t max_iterations = 10;
+
+    for (size_t i = 0; i < max_iterations; i++) {
+        struct io_uring_cqe *cqe;
+        int ret = io_uring_peek_cqe(&term->uring.ring, &cqe);
+
+        if (unlikely(ret < 0)) {
+            if (-ret == EAGAIN)
+                break;
+
+            LOG_ERRNO_P(-ret, "failed to get CQE from io-uring");
+            return false;
+        }
+
+        if (!(cqe->flags & IORING_CQE_F_MORE)) {
+            if (cqe->res >= 0 || -cqe->res == ENOBUFS) {
+                struct io_uring_sqe *sqe = io_uring_get_sqe(&term->uring.ring);
+                io_uring_prep_read_multishot(sqe, term->ptmx, 0, -1, term->uring.bgid);
+                io_uring_submit(&term->uring.ring);
+            }
+        }
+
+        if (unlikely(cqe->res < 0)) {
+            if (-cqe->res == EAGAIN || -cqe->res == EIO || -cqe->res == ENOBUFS) {
+                /*
+                 * EAGAIN: no more to read - FDM will trigger us again
+                 * EIO: assume PTY was closed - we already have, or will get, a EPOLLHUP
+                 */
+                io_uring_cqe_seen(&term->uring.ring, cqe);
+                return true;
+            }
+
+            LOG_ERRNO_P(-cqe->res, "failed to read from pseudo terminal");
+            io_uring_cqe_seen(&term->uring.ring, cqe);
+            return false;
+        }
+
+        xassert(cqe->flags & IORING_CQE_F_BUFFER);
+
+        const int buffer_id = cqe->flags >> IORING_CQE_BUFFER_SHIFT;
+        const ssize_t count = cqe->res;
+        const uint8_t *buf = term->uring.buffers[buffer_id];
+        io_uring_cqe_seen(&term->uring.ring, cqe);
+
+        xassert(term->interactive_resizing.grid == NULL);
+        vt_from_slave(term, buf, count);
+
+        io_uring_buf_ring_add(
+            term->uring.bring, (void *)buf, term->uring.bsize,
+            buffer_id, io_uring_buf_ring_mask(term->uring.bcount), 0);
+
+        // io_uring_buf_ring_cq_advance(&term->uring.ring, term->uring.bring, 1);
+        io_uring_buf_ring_advance(term->uring.bring, 1);
+    }
+
+    if (!term->render.app_sync_updates.enabled) {
+        /*
+         * We likely need to re-render. But, we don't want to do it
+         * immediately. Often, a single client update is done through
+         * multiple writes. This could lead to us rendering one frame with
+         * "intermediate" state.
+         *
+         * For example, we might end up rendering a frame
+         * where the client just erased a line, while in the
+         * next frame, the client wrote to the same line. This
+         * causes screen "flickering".
+         *
+         * Mitigate by always incuring a small delay before
+         * rendering the next frame. This gives the client
+         * some time to finish the operation (and thus gives
+         * us time to receive the last writes before doing any
+         * actual rendering).
+         *
+         * We incur this delay *every* time we receive
+         * input. To ensure we don't delay rendering
+         * indefinitely, we start a second timer that is only
+         * reset when we render.
+         *
+         * Note that when the client is producing data at a
+         * very high pace, we're rate limited by the wayland
+         * compositor anyway. The delay we introduce here only
+         * has any effect when the renderer is idle.
+         */
+        uint64_t lower_ns = term->conf->tweak.delayed_render_lower_ns;
+        uint64_t upper_ns = term->conf->tweak.delayed_render_upper_ns;
+
+        if (lower_ns > 0 && upper_ns > 0) {
+#if PTMX_TIMING
+            struct timespec now;
+
+            clock_gettime(CLOCK_MONOTONIC, &now);
+            if (last.tv_sec > 0 || last.tv_nsec > 0) {
+                struct timespec diff;
+
+                timespec_sub(&now, &last, &diff);
+                LOG_INFO("waited %lds %ldns for more input",
+                         (long)diff.tv_sec, diff.tv_nsec);
+            }
+            last = now;
+#endif
+
+            xassert(lower_ns < 1000000000);
+            xassert(upper_ns < 1000000000);
+            xassert(upper_ns > lower_ns);
+
+            timerfd_settime(
+                term->delayed_render_timer.lower_fd, 0,
+                &(struct itimerspec){.it_value = {.tv_nsec = lower_ns}},
+                NULL);
+
+            /* Second timeout - only reset when we render. Set to one
+             * frame (assuming 60Hz) */
+            if (!term->delayed_render_timer.is_armed) {
+                timerfd_settime(
+                    term->delayed_render_timer.upper_fd, 0,
+                    &(struct itimerspec){.it_value = {.tv_nsec = upper_ns}},
+                    NULL);
+                term->delayed_render_timer.is_armed = true;
+            }
+        } else
+            render_refresh(term);
+    }
+
+    return true;
+}
+#endif
 bool fdm_ptmx(struct fdm *fdm, int fd, int events, void *data) {
     struct terminal *term = data;
 
@@ -282,6 +430,7 @@ bool fdm_ptmx(struct fdm *fdm, int fd, int events, void *data) {
 
         xassert(term->interactive_resizing.grid == NULL);
         vt_from_slave(term, buf, count);
+        break;
     }
 
     if (!term->render.app_sync_updates.enabled) {
@@ -1250,6 +1399,17 @@ term_init(const struct config *conf, struct fdm *fdm, struct reaper *reaper,
         .ptmx = ptmx,
         .ptmx_buffers = tll_init(),
         .ptmx_paste_buffers = tll_init(),
+#if defined(FOOT_IO_URING)
+        .uring = {
+            .ring = {
+                .ring_fd = -1,
+                .enter_ring_fd = -1,
+            },
+            .bgid = 0x1234,
+            .bsize = 24 * 1024,
+            .bcount = 16,
+        },
+#endif
         .font_sizes = {
             xmalloc(sizeof(term->font_sizes[0][0]) * conf->fonts[0].count),
             xmalloc(sizeof(term->font_sizes[1][0]) * conf->fonts[1].count),
@@ -1324,8 +1484,7 @@ term_init(const struct config *conf, struct fdm *fdm, struct reaper *reaper,
         .wl = wayl,
         .render = {
             .chains = {
-                .grid = vk_chain_new(wayl->vk, wayl->linux_dmabuf, true, 1 + conf->render_worker_count,
-                                     &render_buffer_release_callback, term),
+                .grid = vk_chain_new(wayl->vk, wayl->linux_dmabuf, true, 1 + conf->render_worker_count, &render_buffer_release_callback, term),
                 .search = vk_chain_new(wayl->vk, wayl->linux_dmabuf, false, 1, NULL, NULL),
                 .scrollback_indicator = vk_chain_new(wayl->vk, wayl->linux_dmabuf, false, 1, NULL, NULL),
                 .render_timer = vk_chain_new(wayl->vk, wayl->linux_dmabuf, false, 1, NULL, NULL),
@@ -1468,7 +1627,54 @@ void term_window_configured(struct terminal *term) {
     /* Enable ptmx FDM callback */
     if (!term->shutdown.in_progress) {
         xassert(term->window->is_configured);
+#if defined(FOOT_IO_URING)
+        {
+            struct io_uring_params params = {
+                .flags = IORING_SETUP_CQSIZE | IORING_SETUP_COOP_TASKRUN | IORING_SETUP_TASKRUN_FLAG | IORING_SETUP_NO_SQARRAY,
+                .cq_entries = term->uring.bcount * 2,
+            };
+
+            int ret = io_uring_queue_init_params(2, &term->uring.ring, &params);
+            if (ret < 0) {
+                LOG_ERRNO_P(-ret, "failed to initialize io_uring queue");
+                BUG("cannot yet handle failure to initialize io_uring");
+            }
+
+            xassert(term->uring.ring.features & IORING_FEAT_NODROP);
+            xassert(term->uring.ring.features & IORING_FEAT_FAST_POLL);
+            xassert(term->uring.ring.ring_fd >= 0);
+            xassert(term->uring.ring.enter_ring_fd >= 0);
+
+            term->uring.bring = io_uring_setup_buf_ring(
+                &term->uring.ring, term->uring.bcount, term->uring.bgid, 0, &ret);
+
+            term->uring.buffers = xmalloc(
+                term->uring.bcount * sizeof(term->uring.buffers[0]));
+
+            for (unsigned short id = 0; id < term->uring.bcount; id++) {
+                void *buffer = xmalloc(term->uring.bsize);
+
+                io_uring_buf_ring_add(
+                    term->uring.bring, buffer, term->uring.bsize, id,
+                    io_uring_buf_ring_mask(term->uring.bcount), id);
+
+                term->uring.buffers[id] = buffer;
+            }
+
+            io_uring_buf_ring_advance(term->uring.bring, term->uring.bcount);
+
+            struct io_uring_sqe *sqe = io_uring_get_sqe(&term->uring.ring);
+            io_uring_prep_read_multishot(sqe, term->ptmx, 0, -1, term->uring.bgid);
+            io_uring_submit(&term->uring.ring);
+
+            fdm_add(term->fdm, term->uring.ring.ring_fd, EPOLLIN, &fdm_ptmx_eventfd, term);
+        }
+
+        /* We still need this, for EPOLLOUT (and maybe HUP?) */
+        fdm_add(term->fdm, term->ptmx, 0, &fdm_ptmx, term);
+#else
         fdm_add(term->fdm, term->ptmx, EPOLLIN, &fdm_ptmx, term);
+#endif
 
         const bool gamma_correct = wayl_do_linear_blending(term->wl, term->conf);
         LOG_INFO("gamma-correct blending: %s", gamma_correct ? "enabled" : "disabled");
@@ -1611,6 +1817,55 @@ fdm_shutdown(struct fdm *fdm, int fd, int events, void *data) {
     return true;
 }
 
+static void
+uring_shutdown(struct terminal *term) {
+#if defined(FOOT_IO_URING)
+    if (term->uring.ring.ring_fd < 0)
+        return;
+
+    xassert(term->uring.ring.cq.koverflow == 0);
+
+    if (term->window != NULL && term->window->is_configured)
+        fdm_del_no_close(term->fdm, term->uring.ring.ring_fd);
+
+    /* Cancel all pending io-uring requests */
+    struct io_uring_sqe *sqe = io_uring_get_sqe(&term->uring.ring);
+    io_uring_prep_cancel(sqe, NULL, IORING_ASYNC_CANCEL_ALL | IORING_ASYNC_CANCEL_ANY);
+    io_uring_submit(&term->uring.ring);
+
+    while (true) {
+        struct io_uring_cqe *cqe;
+        int ret = io_uring_peek_cqe(&term->uring.ring, &cqe);
+
+        if (ret < 0) {
+            if (-ret != EAGAIN)
+                LOG_ERRNO_P(-ret, "failed to pull CQE from io-uring");
+            break;
+        }
+
+        io_uring_cqe_seen(&term->uring.ring, cqe);
+    }
+
+    if (term->uring.bring != NULL) {
+        io_uring_free_buf_ring(&term->uring.ring, term->uring.bring,
+                               term->uring.bcount, term->uring.bgid);
+    }
+
+    /* Shutdown io-uring */
+    io_uring_queue_exit(&term->uring.ring);
+
+    /* Free io-uring buffers */
+    if (term->uring.buffers != NULL) {
+        for (size_t i = 0; i < term->uring.bcount; i++)
+            free(term->uring.buffers[i]);
+        free(term->uring.buffers);
+    }
+
+    term->uring.ring.ring_fd = -1;
+    term->uring.ring.enter_ring_fd = -1;
+#endif
+}
+
 static bool
 fdm_terminate_timeout(struct fdm *fdm, int fd, int events, void *data) {
     uint64_t unused;
@@ -1669,7 +1924,7 @@ bool term_shutdown(struct terminal *term) {
 
     term_cursor_blink_update(term);
     xassert(term->cursor_blink.fd < 0);
-
+    uring_shutdown(term);
     fdm_del(term->fdm, term->selection.auto_scroll.fd);
     fdm_del(term->fdm, term->render.app_sync_updates.timer_fd);
     fdm_del(term->fdm, term->render.app_id.timer_fd);
@@ -1784,7 +2039,10 @@ int term_destroy(struct terminal *term) {
     fdm_del(term->fdm, term->cursor_blink.fd);
     fdm_del(term->fdm, term->blink.fd);
     fdm_del(term->fdm, term->flash.fd);
-    fdm_del(term->fdm, term->ptmx);
+    if (term->window != NULL && term->window->is_configured) {
+        fdm_del(term->fdm, term->ptmx);
+    } else if (term->ptmx >= 0)
+        close(term->ptmx);
     if (term->shutdown.terminate_timeout_fd >= 0)
         fdm_del(term->fdm, term->shutdown.terminate_timeout_fd);
 

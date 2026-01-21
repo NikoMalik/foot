@@ -146,11 +146,18 @@ wayland_cursor = dependency('wayland-cursor')
 xkb = dependency('xkbcommon', version: '>=1.0.0')
 fontconfig = dependency('fontconfig')
 utf8proc = dependency('libutf8proc', required: get_option('grapheme-clustering'))
+io_uring = dependency('liburing', required: get_option('io-uring'))
 vulkan = dependency('vulkan')
 drm = dependency('libdrm').partial_dependency(compile_args: true, includes: true)
 
 if utf8proc.found()
   add_project_arguments('-DFOOT_GRAPHEME_CLUSTERING=1', language: 'c')
+endif
+
+
+
+if io_uring.found()
+  add_project_arguments('-DFOOT_IO_URING=1', language: 'c')
 endif
 
 
@@ -290,7 +297,7 @@ vtlib = static_library(
   builtin_terminfo, srgb_funcs,
   wl_proto_src + wl_proto_headers,
   version,
-  dependencies: [libepoll, pixman, fcft, tllist, wayland_client, xkb, utf8proc,mi_dep],
+  dependencies: [libepoll, pixman, fcft, tllist, wayland_client, xkb, utf8proc,mi_dep,io_uring],
   link_with: [common, misc],
 )
 
@@ -301,7 +308,7 @@ pgolib = static_library(
   'terminal.c', 'terminal.h',
   emoji_variation_sequences,
   wl_proto_src + wl_proto_headers,
-  dependencies: [libepoll, pixman, fcft, tllist, wayland_client, xkb, utf8proc,mi_dep],
+  dependencies: [libepoll, pixman, fcft, tllist, wayland_client, xkb, utf8proc,mi_dep,io_uring],
   link_with: vtlib,
 )
 
@@ -317,7 +324,7 @@ if get_option('b_pgo') == 'generate'
     'pgo',
     'pgo/pgo.c',
     wl_proto_src + wl_proto_headers,
-    dependencies: [math, threads, libepoll, pixman, wayland_client, xkb, utf8proc, fcft, tllist,mi_dep],
+    dependencies: [math, threads, libepoll, pixman, wayland_client, xkb, utf8proc, fcft, tllist,mi_dep,io_uring],
     link_with: pgolib,
   )
 endif
@@ -353,7 +360,7 @@ executable(
   'xkbcommon-vmod.h',
   srgb_funcs, wl_proto_src + wl_proto_headers, version,
   dependencies: [math, threads, libepoll, pixman, wayland_client, wayland_cursor, xkb, fontconfig, utf8proc,
-                 tllist, fcft,vulkan,drm,mi_dep],
+                 tllist, fcft,vulkan,drm,mi_dep,io_uring],
   link_with: pgolib,
   install: true)
 
@@ -459,6 +466,7 @@ summary(
     'Terminfo install location': terminfo_install_location,
     'Default TERM': get_option('default-terminfo'),
     'Set TERMINFO': get_option('custom-terminfo-install-location') != '',
+    'io-uring': io_uring.found(),
     'Build tests': get_option('tests'),
     'mimalloc': mi_dep.found() ? 'yes' : 'no (system malloc)',
   },

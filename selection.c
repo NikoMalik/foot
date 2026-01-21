@@ -42,31 +42,26 @@ static const char *const mime_type_map[] = {
 };
 
 static inline struct coord
-bounded(const struct grid *grid, struct coord coord)
-{
+bounded(const struct grid *grid, struct coord coord) {
     coord.row &= grid->num_rows - 1;
     return coord;
 }
 
 struct coord
-selection_get_start(const struct terminal *term)
-{
+selection_get_start(const struct terminal *term) {
     if (term->selection.coords.start.row < 0)
         return term->selection.coords.start;
     return bounded(term->grid, term->selection.coords.start);
 }
 
 struct coord
-selection_get_end(const struct terminal *term)
-{
+selection_get_end(const struct terminal *term) {
     if (term->selection.coords.end.row < 0)
         return term->selection.coords.end;
     return bounded(term->grid, term->selection.coords.end);
 }
 
-bool
-selection_on_rows(const struct terminal *term, int row_start, int row_end)
-{
+bool selection_on_rows(const struct terminal *term, int row_start, int row_end) {
     xassert(term->selection.coords.end.row >= 0);
 
     LOG_DBG("on rows: %d-%d, range: %d-%d (offset=%d)",
@@ -100,8 +95,7 @@ selection_on_rows(const struct terminal *term, int row_start, int row_end)
     }
 
     if ((rel_row_start <= rel_sel_start && rel_row_end >= rel_sel_start) ||
-        (rel_row_start <= rel_sel_end && rel_row_end >= rel_sel_end))
-    {
+        (rel_row_start <= rel_sel_end && rel_row_end >= rel_sel_end)) {
         /* The range crosses one of the selection boundaries */
         return true;
     }
@@ -112,9 +106,7 @@ selection_on_rows(const struct terminal *term, int row_start, int row_end)
     return false;
 }
 
-void
-selection_scroll_up(struct terminal *term, int rows)
-{
+void selection_scroll_up(struct terminal *term, int rows) {
     xassert(term->selection.coords.end.row >= 0);
 
     const int rel_row_start =
@@ -129,9 +121,7 @@ selection_scroll_up(struct terminal *term, int rows)
     }
 }
 
-void
-selection_scroll_down(struct terminal *term, int rows)
-{
+void selection_scroll_down(struct terminal *term, int rows) {
     xassert(term->selection.coords.end.row >= 0);
 
     const struct grid *grid = term->grid;
@@ -151,9 +141,7 @@ selection_scroll_down(struct terminal *term, int rows)
     }
 }
 
-void
-selection_view_up(struct terminal *term, int new_view)
-{
+void selection_view_up(struct terminal *term, int new_view) {
     if (likely(term->selection.coords.start.row < 0))
         return;
 
@@ -165,9 +153,7 @@ selection_view_up(struct terminal *term, int new_view)
         term->selection.coords.end.row += term->grid->num_rows;
 }
 
-void
-selection_view_down(struct terminal *term, int new_view)
-{
+void selection_view_down(struct terminal *term, int new_view) {
     if (likely(term->selection.coords.start.row < 0))
         return;
 
@@ -184,8 +170,7 @@ foreach_selected_normal(
     struct terminal *term, struct coord _start, struct coord _end,
     bool (*cb)(struct terminal *term, struct row *row, struct cell *cell,
                int row_no, int col, void *data),
-    void *data)
-{
+    void *data) {
     const struct coord *start = &_start;
     const struct coord *end = &_end;
 
@@ -247,8 +232,7 @@ foreach_selected_block(
     struct terminal *term, struct coord _start, struct coord _end,
     bool (*cb)(struct terminal *term, struct row *row, struct cell *cell,
                int row_no, int col, void *data),
-    void *data)
-{
+    void *data) {
     const struct coord *start = &_start;
     const struct coord *end = &_end;
 
@@ -262,13 +246,17 @@ foreach_selected_block(
 
     struct coord top_left = {
         .row = (rel_start_row < rel_end_row
-                ? start->row : end->row) & (grid_rows - 1),
+                    ? start->row
+                    : end->row) &
+               (grid_rows - 1),
         .col = min(start->col, end->col),
     };
 
     struct coord bottom_right = {
         .row = (rel_start_row > rel_end_row
-                ? start->row : end->row) & (grid_rows - 1),
+                    ? start->row
+                    : end->row) &
+               (grid_rows - 1),
         .col = max(start->col, end->col),
     };
 
@@ -294,8 +282,7 @@ static void
 foreach_selected(
     struct terminal *term, struct coord start, struct coord end,
     bool (*cb)(struct terminal *term, struct row *row, struct cell *cell, int row_no, int col, void *data),
-    void *data)
-{
+    void *data) {
     switch (term->selection.kind) {
     case SELECTION_CHAR_WISE:
     case SELECTION_WORD_WISE:
@@ -318,14 +305,12 @@ foreach_selected(
 static bool
 extract_one_const_wrapper(struct terminal *term,
                           struct row *row, struct cell *cell,
-                          int row_no, int col, void *data)
-{
+                          int row_no, int col, void *data) {
     return extract_one(term, row, cell, col, data);
 }
 
 char *
-selection_to_text(const struct terminal *term)
-{
+selection_to_text(const struct terminal *term) {
     if (term->selection.coords.end.row == -1)
         return NULL;
 
@@ -342,10 +327,8 @@ selection_to_text(const struct terminal *term)
 }
 
 /* Coordinates are in *absolute* row numbers (NOT view local) */
-void
-selection_find_word_boundary_left(const struct terminal *term, struct coord *pos,
-                                  bool spaces_only)
-{
+void selection_find_word_boundary_left(const struct terminal *term, struct coord *pos,
+                                       bool spaces_only) {
     const struct grid *grid = term->grid;
 
     xassert(pos->col >= 0);
@@ -386,8 +369,7 @@ selection_find_word_boundary_left(const struct terminal *term, struct coord *pos
             next_row = (next_row - 1 + grid->num_rows) & (grid->num_rows - 1);
 
             if (grid_row_abs_to_sb(grid, term->rows, next_row) == term->grid->num_rows - 1 ||
-                grid->rows[next_row] == NULL)
-            {
+                grid->rows[next_row] == NULL) {
                 /* Scrollback wrap-around */
                 break;
             }
@@ -430,11 +412,9 @@ selection_find_word_boundary_left(const struct terminal *term, struct coord *pos
 }
 
 /* Coordinates are in *absolute* row numbers (NOT view local) */
-void
-selection_find_word_boundary_right(const struct terminal *term, struct coord *pos,
-                                   bool spaces_only,
-                                   bool stop_on_space_to_word_boundary)
-{
+void selection_find_word_boundary_right(const struct terminal *term, struct coord *pos,
+                                        bool spaces_only,
+                                        bool stop_on_space_to_word_boundary) {
     const struct grid *grid = term->grid;
 
     xassert(pos->col >= 0);
@@ -529,14 +509,12 @@ selection_find_word_boundary_right(const struct terminal *term, struct coord *po
 
 static bool
 selection_find_quote_left(struct terminal *term, struct coord *pos,
-                          char32_t *quote_char)
-{
+                          char32_t *quote_char) {
     const struct row *row = grid_row_in_view(term->grid, pos->row);
     char32_t wc = row->cells[pos->col].wc;
 
     if (*quote_char == '\0' ? (wc == '"' || wc == '\'')
-                            : wc == *quote_char)
-    {
+                            : wc == *quote_char) {
         return false;
     }
 
@@ -557,8 +535,7 @@ selection_find_quote_left(struct terminal *term, struct coord *pos,
         wc = row->cells[next_col].wc;
 
         if (*quote_char == '\0' ? (wc == '"' || wc == '\'')
-                                : wc == *quote_char)
-        {
+                                : wc == *quote_char) {
             xassert(next_col + 1 <= term->cols);
             if (next_col + 1 == term->cols) {
                 xassert(next_row < pos->row);
@@ -576,8 +553,7 @@ selection_find_quote_left(struct terminal *term, struct coord *pos,
 }
 
 static bool
-selection_find_quote_right(struct terminal *term, struct coord *pos, char32_t quote_char)
-{
+selection_find_quote_right(struct terminal *term, struct coord *pos, char32_t quote_char) {
     if (quote_char == '\0')
         return false;
 
@@ -612,8 +588,7 @@ selection_find_quote_right(struct terminal *term, struct coord *pos, char32_t qu
 }
 
 static void
-selection_find_line_boundary_left(struct terminal *term, struct coord *pos)
-{
+selection_find_line_boundary_left(struct terminal *term, struct coord *pos) {
     int next_row = pos->row;
     pos->col = 0;
 
@@ -633,8 +608,7 @@ selection_find_line_boundary_left(struct terminal *term, struct coord *pos)
 }
 
 static void
-selection_find_line_boundary_right(struct terminal *term, struct coord *pos)
-{
+selection_find_line_boundary_right(struct terminal *term, struct coord *pos) {
     int next_row = pos->row;
     pos->col = term->cols - 1;
 
@@ -653,19 +627,17 @@ selection_find_line_boundary_right(struct terminal *term, struct coord *pos)
     }
 }
 
-void
-selection_start(struct terminal *term, int col, int row,
-                enum selection_kind kind,
-                bool spaces_only)
-{
+void selection_start(struct terminal *term, int col, int row,
+                     enum selection_kind kind,
+                     bool spaces_only) {
     selection_cancel(term);
 
     LOG_DBG("%s selection started at %d,%d",
-            kind == SELECTION_CHAR_WISE ? "character-wise" :
-            kind == SELECTION_WORD_WISE ? "word-wise" :
-            kind == SELECTION_QUOTE_WISE ? "quote-wise" :
-            kind == SELECTION_LINE_WISE ? "line-wise" :
-            kind == SELECTION_BLOCK ? "block" : "<unknown>",
+            kind == SELECTION_CHAR_WISE ? "character-wise" : kind == SELECTION_WORD_WISE ? "word-wise"
+                                                         : kind == SELECTION_QUOTE_WISE  ? "quote-wise"
+                                                         : kind == SELECTION_LINE_WISE   ? "line-wise"
+                                                         : kind == SELECTION_BLOCK       ? "block"
+                                                                                         : "<unknown>",
             row, col);
 
     term->selection.kind = kind;
@@ -775,14 +747,12 @@ selection_start(struct terminal *term, int col, int row,
         BUG("Invalid selection kind");
         break;
     }
-
 }
 
 static pixman_region32_t
 pixman_region_for_coords_normal(const struct terminal *term,
                                 const struct coord *start,
-                                const struct coord *end)
-{
+                                const struct coord *end) {
     pixman_region32_t region;
     pixman_region32_init(&region);
 
@@ -847,8 +817,7 @@ pixman_region_for_coords_normal(const struct terminal *term,
 
 static pixman_region32_t
 pixman_region_for_coords_block(const struct terminal *term,
-                               const struct coord *start, const struct coord *end)
-{
+                               const struct coord *start, const struct coord *end) {
     pixman_region32_t region;
     pixman_region32_init(&region);
 
@@ -870,11 +839,12 @@ pixman_region_for_coords_block(const struct terminal *term,
  * relative coordinates* */
 static pixman_region32_t
 pixman_region_for_coords(const struct terminal *term,
-                         const struct coord *start, const struct coord *end)
-{
+                         const struct coord *start, const struct coord *end) {
     switch (term->selection.kind) {
-    default:              return pixman_region_for_coords_normal(term, start, end);
-    case SELECTION_BLOCK: return pixman_region_for_coords_block(term, start, end);
+    default:
+        return pixman_region_for_coords_normal(term, start, end);
+    case SELECTION_BLOCK:
+        return pixman_region_for_coords_block(term, start, end);
     }
 }
 
@@ -886,8 +856,7 @@ enum mark_selection_variant {
 
 static void
 mark_selected_region(struct terminal *term, pixman_box32_t *boxes,
-                     size_t count, enum mark_selection_variant mark_variant)
-{
+                     size_t count, enum mark_selection_variant mark_variant) {
     const bool selected =
         mark_variant == MARK_SELECTION_MARK_AND_DIRTY ||
         mark_variant == MARK_SELECTION_MARK_FOR_RENDER;
@@ -911,8 +880,7 @@ mark_selected_region(struct terminal *term, pixman_box32_t *boxes,
 
         for (int r = abs_row_start, rel_r = box->y1;
              rel_r < box->y2;
-             r = (r + 1) & (term->grid->num_rows - 1), rel_r++)
-        {
+             r = (r + 1) & (term->grid->num_rows - 1), rel_r++) {
             struct row *row = term->grid->rows[r];
             xassert(row != NULL);
 
@@ -994,8 +962,7 @@ mark_selected_region(struct terminal *term, pixman_box32_t *boxes,
 }
 
 static void
-selection_modify(struct terminal *term, struct coord start, struct coord end)
-{
+selection_modify(struct terminal *term, struct coord start, struct coord end) {
     xassert(term->selection.coords.start.row != -1);
     xassert(start.row != -1 && start.col != -1);
     xassert(end.row != -1 && end.col != -1);
@@ -1045,8 +1012,7 @@ selection_modify(struct terminal *term, struct coord start, struct coord end)
 static void
 set_pivot_point_for_block_and_char_wise(struct terminal *term,
                                         struct coord start,
-                                        enum selection_direction new_direction)
-{
+                                        enum selection_direction new_direction) {
     struct coord *pivot_start = &term->selection.pivot.start;
     struct coord *pivot_end = &term->selection.pivot.end;
 
@@ -1098,7 +1064,8 @@ set_pivot_point_for_block_and_char_wise(struct terminal *term,
         while (keep_going) {
             const struct row *row = term->grid->rows[pivot_start->row & (term->grid->num_rows - 1)];
             const char32_t wc = pivot_start->col < term->cols - 1
-                ? row->cells[pivot_start->col + 1].wc : 0;
+                                    ? row->cells[pivot_start->col + 1].wc
+                                    : 0;
 
             keep_going = wc >= CELL_SPACER;
 
@@ -1112,15 +1079,11 @@ set_pivot_point_for_block_and_char_wise(struct terminal *term,
         }
     }
 
-    xassert(term->grid->rows[pivot_start->row & (term->grid->num_rows - 1)]->
-           cells[pivot_start->col].wc <= CELL_SPACER);
-    xassert(term->grid->rows[pivot_end->row & (term->grid->num_rows - 1)]->
-           cells[pivot_end->col].wc <= CELL_SPACER + 1);
+    xassert(term->grid->rows[pivot_start->row & (term->grid->num_rows - 1)]->cells[pivot_start->col].wc <= CELL_SPACER);
+    xassert(term->grid->rows[pivot_end->row & (term->grid->num_rows - 1)]->cells[pivot_end->col].wc <= CELL_SPACER + 1);
 }
 
-void
-selection_update(struct terminal *term, int col, int row)
-{
+void selection_update(struct terminal *term, int col, int row) {
     if (term->selection.coords.start.row < 0)
         return;
 
@@ -1161,8 +1124,7 @@ selection_update(struct terminal *term, int col, int row)
         } else {
             if (new_end.row < pivot_start->row ||
                 (new_end.row == pivot_start->row &&
-                 new_end.col < pivot_start->col))
-            {
+                 new_end.col < pivot_start->col)) {
                 /* New end point is before the start point */
                 new_direction = SELECTION_LEFT;
             } else {
@@ -1172,8 +1134,7 @@ selection_update(struct terminal *term, int col, int row)
 
             if (term->selection.direction != new_direction) {
                 if (term->selection.direction == SELECTION_UNDIR &&
-                    pivot_end->row < 0)
-                {
+                    pivot_end->row < 0) {
                     set_pivot_point_for_block_and_char_wise(
                         term, *pivot_start, new_direction);
                 }
@@ -1252,8 +1213,7 @@ selection_update(struct terminal *term, int col, int row)
     /* If an end point is in the middle of a multi-column character,
      * expand the selection to cover the entire character */
     if (new_start.row < new_end.row ||
-        (new_start.row == new_end.row && new_start.col <= new_end.col))
-    {
+        (new_start.row == new_end.row && new_start.col <= new_end.col)) {
         while (new_start.col >= 1 &&
                row_start->cells[new_start.col].wc >= CELL_SPACER)
             new_start.col--;
@@ -1272,9 +1232,7 @@ selection_update(struct terminal *term, int col, int row)
     selection_modify(term, new_start, new_end);
 }
 
-void
-selection_dirty_cells(struct terminal *term)
-{
+void selection_dirty_cells(struct terminal *term) {
     if (term->selection.coords.start.row < 0 || term->selection.coords.end.row < 0)
         return;
 
@@ -1302,8 +1260,7 @@ selection_dirty_cells(struct terminal *term)
 
 static void
 selection_extend_normal(struct terminal *term, int col, int row,
-                        enum selection_kind new_kind)
-{
+                        enum selection_kind new_kind) {
     const struct coord *start = &term->selection.coords.start;
     const struct coord *end = &term->selection.coords.end;
 
@@ -1312,8 +1269,7 @@ selection_extend_normal(struct terminal *term, int col, int row,
     int rel_end_row = grid_row_abs_to_sb(term->grid, term->rows, end->row);
 
     if (rel_start_row > rel_end_row ||
-        (rel_start_row == rel_end_row && start->col > end->col))
-    {
+        (rel_start_row == rel_end_row && start->col > end->col)) {
         const struct coord *tmp = start;
         start = end;
         end = tmp;
@@ -1327,8 +1283,7 @@ selection_extend_normal(struct terminal *term, int col, int row,
     enum selection_direction direction;
 
     if (rel_row < rel_start_row ||
-        (rel_row == rel_start_row && col < start->col))
-    {
+        (rel_row == rel_start_row && col < start->col)) {
         /* Extend selection to start *before* current start */
         new_start = *end;
         new_end = (struct coord){col, row};
@@ -1336,8 +1291,7 @@ selection_extend_normal(struct terminal *term, int col, int row,
     }
 
     else if (rel_row > rel_end_row ||
-             (rel_row == rel_end_row && col > end->col))
-    {
+             (rel_row == rel_end_row && col > end->col)) {
         /* Extend selection to end *after* current end */
         new_start = *start;
         new_end = (struct coord){col, row};
@@ -1350,8 +1304,7 @@ selection_extend_normal(struct terminal *term, int col, int row,
         const int linear = rel_row * term->cols + col;
 
         if (abs(linear - (rel_start_row * term->cols + start->col)) <
-            abs(linear - (rel_end_row * term->cols + end->col)))
-        {
+            abs(linear - (rel_end_row * term->cols + end->col))) {
             /* Move start point */
             new_start = *end;
             new_end = (struct coord){col, row};
@@ -1376,7 +1329,7 @@ selection_extend_normal(struct terminal *term, int col, int row,
 
     case SELECTION_WORD_WISE: {
         xassert(new_kind == SELECTION_CHAR_WISE ||
-               new_kind == SELECTION_WORD_WISE);
+                new_kind == SELECTION_WORD_WISE);
 
         struct coord pivot_start = {new_start.col, new_start.row};
         struct coord pivot_end = pivot_start;
@@ -1423,8 +1376,7 @@ selection_extend_normal(struct terminal *term, int col, int row,
 }
 
 static void
-selection_extend_block(struct terminal *term, int col, int row)
-{
+selection_extend_block(struct terminal *term, int col, int row) {
     const struct coord *start = &term->selection.coords.start;
     const struct coord *end = &term->selection.coords.end;
 
@@ -1462,8 +1414,7 @@ selection_extend_block(struct terminal *term, int col, int row)
     enum selection_direction direction = SELECTION_UNDIR;
 
     if (rel_row <= rel_top_row ||
-        abs(rel_row - rel_top_row) < abs(rel_row - rel_bottom_row))
-    {
+        abs(rel_row - rel_top_row) < abs(rel_row - rel_bottom_row)) {
         /* Move one of the top corners */
 
         if (abs(col - top_left.col) < abs(col - top_right.col)) {
@@ -1498,10 +1449,8 @@ selection_extend_block(struct terminal *term, int col, int row)
     selection_modify(term, new_start, new_end);
 }
 
-void
-selection_extend(struct seat *seat, struct terminal *term,
-                 int col, int row, enum selection_kind new_kind)
-{
+void selection_extend(struct seat *seat, struct terminal *term,
+                      int col, int row, enum selection_kind new_kind) {
     if (term->selection.coords.start.row < 0 || term->selection.coords.end.row < 0) {
         /* No existing selection */
         return;
@@ -1515,8 +1464,7 @@ selection_extend(struct seat *seat, struct terminal *term,
     row += term->grid->view;
 
     if ((row == term->selection.coords.start.row && col == term->selection.coords.start.col) ||
-        (row == term->selection.coords.end.row && col == term->selection.coords.end.col))
-    {
+        (row == term->selection.coords.end.row && col == term->selection.coords.end.col)) {
         /* Extension point *is* one of the current end points */
         return;
     }
@@ -1539,11 +1487,9 @@ selection_extend(struct seat *seat, struct terminal *term,
     }
 }
 
-//static const struct zwp_primary_selection_source_v1_listener primary_selection_source_listener;
+// static const struct zwp_primary_selection_source_v1_listener primary_selection_source_listener;
 
-void
-selection_finalize(struct seat *seat, struct terminal *term, uint32_t serial)
-{
+void selection_finalize(struct seat *seat, struct terminal *term, uint32_t serial) {
     if (!term->selection.ongoing)
         return;
 
@@ -1581,8 +1527,7 @@ selection_finalize(struct seat *seat, struct terminal *term, uint32_t serial)
 
 static bool
 unmark_selected(struct terminal *term, struct row *row, struct cell *cell,
-                int row_no, int col, void *data)
-{
+                int row_no, int col, void *data) {
     if (!cell->attrs.selected)
         return true;
 
@@ -1592,9 +1537,7 @@ unmark_selected(struct terminal *term, struct row *row, struct cell *cell,
     return true;
 }
 
-void
-selection_cancel(struct terminal *term)
-{
+void selection_cancel(struct terminal *term) {
     LOG_DBG("selection cancelled: start = %d,%d end = %d,%d",
             term->selection.coords.start.row, term->selection.coords.start.col,
             term->selection.coords.end.row, term->selection.coords.end.col);
@@ -1619,21 +1562,15 @@ selection_cancel(struct terminal *term)
     search_selection_cancelled(term);
 }
 
-bool
-selection_clipboard_has_data(const struct seat *seat)
-{
+bool selection_clipboard_has_data(const struct seat *seat) {
     return seat->clipboard.data_offer != NULL;
 }
 
-bool
-selection_primary_has_data(const struct seat *seat)
-{
+bool selection_primary_has_data(const struct seat *seat) {
     return seat->primary.data_offer != NULL;
 }
 
-void
-selection_clipboard_unset(struct seat *seat)
-{
+void selection_clipboard_unset(struct seat *seat) {
     struct wl_clipboard *clipboard = &seat->clipboard;
 
     if (clipboard->data_source == NULL)
@@ -1651,9 +1588,7 @@ selection_clipboard_unset(struct seat *seat)
     clipboard->text = NULL;
 }
 
-void
-selection_primary_unset(struct seat *seat)
-{
+void selection_primary_unset(struct seat *seat) {
     struct wl_primary *primary = &seat->primary;
 
     if (primary->data_source == NULL)
@@ -1672,8 +1607,7 @@ selection_primary_unset(struct seat *seat)
 }
 
 static bool
-fdm_scroll_timer(struct fdm *fdm, int fd, int events, void *data)
-{
+fdm_scroll_timer(struct fdm *fdm, int fd, int events, void *data) {
     if (events & EPOLLHUP)
         return false;
 
@@ -1707,14 +1641,11 @@ fdm_scroll_timer(struct fdm *fdm, int fd, int events, void *data)
         break;
     }
 
-
     return true;
 }
 
-void
-selection_start_scroll_timer(struct terminal *term, int interval_ns,
-                             enum selection_scroll_direction direction, int col)
-{
+void selection_start_scroll_timer(struct terminal *term, int interval_ns,
+                                  enum selection_scroll_direction direction, int col) {
     xassert(direction != SELECTION_SCROLL_NOT);
 
     if (!term->selection.ongoing)
@@ -1761,9 +1692,7 @@ err:
     return;
 }
 
-void
-selection_stop_scroll_timer(struct terminal *term)
-{
+void selection_stop_scroll_timer(struct terminal *term) {
     if (term->selection.auto_scroll.fd < 0) {
         xassert(term->selection.auto_scroll.direction == SELECTION_SCROLL_NOT);
         return;
@@ -1775,8 +1704,7 @@ selection_stop_scroll_timer(struct terminal *term)
 }
 
 static void
-target(void *data, struct wl_data_source *wl_data_source, const char *mime_type)
-{
+target(void *data, struct wl_data_source *wl_data_source, const char *mime_type) {
     LOG_DBG("TARGET: mime-type=%s", mime_type);
 }
 
@@ -1787,8 +1715,7 @@ struct clipboard_send {
 };
 
 static bool
-fdm_send(struct fdm *fdm, int fd, int events, void *data)
-{
+fdm_send(struct fdm *fdm, int fd, int events, void *data) {
     struct clipboard_send *ctx = data;
 
     if (events & EPOLLHUP)
@@ -1817,14 +1744,12 @@ done:
 
 static void
 send_clipboard_or_primary(struct seat *seat, int fd, const char *selection,
-                          const char *source_name)
-{
+                          const char *source_name) {
     /* Make it NONBLOCK:ing right away - we don't want to block if the
      * initial attempt to send the data synchronously fails */
     int flags;
     if ((flags = fcntl(fd, F_GETFL)) < 0 ||
-        fcntl(fd, F_SETFL, flags | O_NONBLOCK) < 0)
-    {
+        fcntl(fd, F_SETFL, flags | O_NONBLOCK) < 0) {
         LOG_ERRNO("failed to set O_NONBLOCK");
         return;
     }
@@ -1835,7 +1760,7 @@ send_clipboard_or_primary(struct seat *seat, int fd, const char *selection,
     switch (async_write(fd, selection, len, &async_idx)) {
     case ASYNC_WRITE_REMAIN: {
         struct clipboard_send *ctx = xmalloc(sizeof(*ctx));
-        *ctx = (struct clipboard_send) {
+        *ctx = (struct clipboard_send){
             .data = xstrdup(&selection[async_idx]),
             .len = len - async_idx,
             .idx = 0,
@@ -1862,9 +1787,8 @@ send_clipboard_or_primary(struct seat *seat, int fd, const char *selection,
 }
 
 static void
-send(void *data, struct wl_data_source *wl_data_source, const char *mime_type,
-     int32_t fd)
-{
+selection_send(void *data, struct wl_data_source *wl_data_source, const char *mime_type,
+               int32_t fd) {
     struct seat *seat = data;
     const struct wl_clipboard *clipboard = &seat->clipboard;
 
@@ -1872,8 +1796,7 @@ send(void *data, struct wl_data_source *wl_data_source, const char *mime_type,
 }
 
 static void
-cancelled(void *data, struct wl_data_source *wl_data_source)
-{
+cancelled(void *data, struct wl_data_source *wl_data_source) {
     struct seat *seat = data;
     struct wl_clipboard *clipboard = &seat->clipboard;
     xassert(clipboard->data_source == wl_data_source);
@@ -1888,26 +1811,23 @@ cancelled(void *data, struct wl_data_source *wl_data_source)
 
 /* We don't support dragging *from* */
 static void
-dnd_drop_performed(void *data, struct wl_data_source *wl_data_source)
-{
-    //LOG_DBG("DnD drop performed");
+dnd_drop_performed(void *data, struct wl_data_source *wl_data_source) {
+    // LOG_DBG("DnD drop performed");
 }
 
 static void
-dnd_finished(void *data, struct wl_data_source *wl_data_source)
-{
-    //LOG_DBG("DnD finished");
+dnd_finished(void *data, struct wl_data_source *wl_data_source) {
+    // LOG_DBG("DnD finished");
 }
 
 static void
-action(void *data, struct wl_data_source *wl_data_source, uint32_t dnd_action)
-{
-    //LOG_DBG("DnD action: %u", dnd_action);
+action(void *data, struct wl_data_source *wl_data_source, uint32_t dnd_action) {
+    // LOG_DBG("DnD action: %u", dnd_action);
 }
 
 static const struct wl_data_source_listener data_source_listener = {
     .target = &target,
-    .send = &send,
+    .send = &selection_send,
     .cancelled = &cancelled,
     .dnd_drop_performed = &dnd_drop_performed,
     .dnd_finished = &dnd_finished,
@@ -1917,8 +1837,7 @@ static const struct wl_data_source_listener data_source_listener = {
 static void
 primary_send(void *data,
              struct zwp_primary_selection_source_v1 *zwp_primary_selection_source_v1,
-             const char *mime_type, int32_t fd)
-{
+             const char *mime_type, int32_t fd) {
     struct seat *seat = data;
     const struct wl_primary *primary = &seat->primary;
 
@@ -1927,8 +1846,7 @@ primary_send(void *data,
 
 static void
 primary_cancelled(void *data,
-                  struct zwp_primary_selection_source_v1 *zwp_primary_selection_source_v1)
-{
+                  struct zwp_primary_selection_source_v1 *zwp_primary_selection_source_v1) {
     struct seat *seat = data;
     struct wl_primary *primary = &seat->primary;
 
@@ -1945,9 +1863,7 @@ static const struct zwp_primary_selection_source_v1_listener primary_selection_s
     .cancelled = &primary_cancelled,
 };
 
-bool
-text_to_clipboard(struct seat *seat, struct terminal *term, char *text, uint32_t serial)
-{
+bool text_to_clipboard(struct seat *seat, struct terminal *term, char *text, uint32_t serial) {
     xassert(serial != 0);
 
     struct wl_clipboard *clipboard = &seat->clipboard;
@@ -1964,8 +1880,7 @@ text_to_clipboard(struct seat *seat, struct terminal *term, char *text, uint32_t
         clipboard->text = NULL;
     }
 
-    clipboard->data_source
-        = wl_data_device_manager_create_data_source(term->wl->data_device_manager);
+    clipboard->data_source = wl_data_device_manager_create_data_source(term->wl->data_device_manager);
 
     if (clipboard->data_source == NULL) {
         LOG_ERR("failed to create clipboard data source");
@@ -1977,7 +1892,8 @@ text_to_clipboard(struct seat *seat, struct terminal *term, char *text, uint32_t
     /* Configure source */
     wl_data_source_offer(clipboard->data_source, mime_type_map[DATA_OFFER_MIME_TEXT_UTF8]);
     wl_data_source_offer(clipboard->data_source, mime_type_map[DATA_OFFER_MIME_TEXT_PLAIN]);
-    wl_data_source_offer(clipboard->data_source, mime_type_map[DATA_OFFER_MIME_TEXT_TEXT]);;
+    wl_data_source_offer(clipboard->data_source, mime_type_map[DATA_OFFER_MIME_TEXT_TEXT]);
+    ;
     wl_data_source_offer(clipboard->data_source, mime_type_map[DATA_OFFER_MIME_TEXT_STRING]);
     wl_data_source_offer(clipboard->data_source, mime_type_map[DATA_OFFER_MIME_TEXT_UTF8_STRING]);
 
@@ -1989,9 +1905,7 @@ text_to_clipboard(struct seat *seat, struct terminal *term, char *text, uint32_t
     return true;
 }
 
-void
-selection_to_clipboard(struct seat *seat, struct terminal *term, uint32_t serial)
-{
+void selection_to_clipboard(struct seat *seat, struct terminal *term, uint32_t serial) {
     if (term->selection.coords.start.row < 0 || term->selection.coords.end.row < 0)
         return;
 
@@ -2026,8 +1940,7 @@ struct clipboard_receive {
 };
 
 static void
-clipboard_receive_done(struct fdm *fdm, struct clipboard_receive *ctx)
-{
+clipboard_receive_done(struct fdm *fdm, struct clipboard_receive *ctx) {
     fdm_del(fdm, ctx->timeout_fd);
     fdm_del(fdm, ctx->read_fd);
     ctx->done(ctx->user);
@@ -2036,8 +1949,7 @@ clipboard_receive_done(struct fdm *fdm, struct clipboard_receive *ctx)
 }
 
 static bool
-fdm_receive_timeout(struct fdm *fdm, int fd, int events, void *data)
-{
+fdm_receive_timeout(struct fdm *fdm, int fd, int events, void *data) {
     struct clipboard_receive *ctx = data;
     if (events & EPOLLHUP)
         return false;
@@ -2062,19 +1974,16 @@ fdm_receive_timeout(struct fdm *fdm, int fd, int events, void *data)
 }
 
 static void
-fdm_receive_decoder_plain(struct clipboard_receive *ctx, char *data, size_t size)
-{
+fdm_receive_decoder_plain(struct clipboard_receive *ctx, char *data, size_t size) {
     ctx->cb(data, size, ctx->user);
 }
 
 static void
-fdm_receive_finish_plain(struct clipboard_receive *ctx)
-{
+fdm_receive_finish_plain(struct clipboard_receive *ctx) {
 }
 
 static bool
-decode_one_uri(struct clipboard_receive *ctx, char *uri, size_t len)
-{
+decode_one_uri(struct clipboard_receive *ctx, char *uri, size_t len) {
     LOG_DBG("URI: \"%.*s\"", (int)len, uri);
 
     if (len == 0)
@@ -2108,8 +2017,7 @@ decode_one_uri(struct clipboard_receive *ctx, char *uri, size_t len)
 }
 
 static void
-fdm_receive_decoder_uri(struct clipboard_receive *ctx, char *data, size_t size)
-{
+fdm_receive_decoder_uri(struct clipboard_receive *ctx, char *data, size_t size) {
     while (ctx->buf.idx + size > ctx->buf.sz) {
         size_t new_sz = ctx->buf.sz == 0 ? size : 2 * ctx->buf.sz;
         ctx->buf.data = xrealloc(ctx->buf.data, new_sz);
@@ -2143,15 +2051,13 @@ fdm_receive_decoder_uri(struct clipboard_receive *ctx, char *data, size_t size)
 }
 
 static void
-fdm_receive_finish_uri(struct clipboard_receive *ctx)
-{
+fdm_receive_finish_uri(struct clipboard_receive *ctx) {
     LOG_DBG("finish: %.*s", (int)ctx->buf.idx, ctx->buf.data);
     decode_one_uri(ctx, ctx->buf.data, ctx->buf.idx);
 }
 
 static bool
-fdm_receive(struct fdm *fdm, int fd, int events, void *data)
-{
+fdm_receive(struct fdm *fdm, int fd, int events, void *data) {
     struct clipboard_receive *ctx = data;
 
     if ((events & EPOLLHUP) && !(events & EPOLLIN))
@@ -2189,13 +2095,13 @@ fdm_receive(struct fdm *fdm, int fd, int events, void *data)
         char *p = text;
         size_t left = count;
 
-#define skip_one()                              \
-        do {                                    \
-            ctx->decoder(ctx, p, i);            \
-            xassert(i + 1 <= left);             \
-            p += i + 1;                         \
-            left -= i + 1;                      \
-        } while (0)
+#define skip_one()               \
+    do {                         \
+        ctx->decoder(ctx, p, i); \
+        xassert(i + 1 <= left);  \
+        p += i + 1;              \
+        left -= i + 1;           \
+    } while (0)
 
     again:
         for (size_t i = 0; i < left; i++) {
@@ -2218,11 +2124,31 @@ fdm_receive(struct fdm *fdm, int fd, int events, void *data)
                 break;
 
             /* C0 non-formatting control characters (\b \t \n \r excluded) */
-            case '\x01': case '\x02': case '\x03': case '\x04': case '\x05':
-            case '\x06': case '\x07': case '\x0e': case '\x0f': case '\x10':
-            case '\x11': case '\x12': case '\x13': case '\x14': case '\x15':
-            case '\x16': case '\x17': case '\x18': case '\x19': case '\x1a':
-            case '\x1b': case '\x1c': case '\x1d': case '\x1e': case '\x1f':
+            case '\x01':
+            case '\x02':
+            case '\x03':
+            case '\x04':
+            case '\x05':
+            case '\x06':
+            case '\x07':
+            case '\x0e':
+            case '\x0f':
+            case '\x10':
+            case '\x11':
+            case '\x12':
+            case '\x13':
+            case '\x14':
+            case '\x15':
+            case '\x16':
+            case '\x17':
+            case '\x18':
+            case '\x19':
+            case '\x1a':
+            case '\x1b':
+            case '\x1c':
+            case '\x1d':
+            case '\x1e':
+            case '\x1f':
                 skip_one();
                 goto again;
 
@@ -2241,7 +2167,9 @@ fdm_receive(struct fdm *fdm, int fd, int events, void *data)
              * Note some of the (default) XTerm controls are already
              * handled above.
              */
-            case '\b': case '\x7f': case '\x00':
+            case '\b':
+            case '\x7f':
+            case '\x00':
                 if (!ctx->bracketed) {
                     skip_one();
                     goto again;
@@ -2266,15 +2194,13 @@ static void
 begin_receive_clipboard(struct terminal *term, int read_fd,
                         enum data_offer_mime_type mime_type,
                         void (*cb)(char *data, size_t size, void *user),
-                        void (*done)(void *user), void *user)
-{
+                        void (*done)(void *user), void *user) {
     int timeout_fd = -1;
     struct clipboard_receive *ctx = NULL;
 
     int flags;
     if ((flags = fcntl(read_fd, F_GETFL)) < 0 ||
-        fcntl(read_fd, F_SETFL, flags | O_NONBLOCK) < 0)
-    {
+        fcntl(read_fd, F_SETFL, flags | O_NONBLOCK) < 0) {
         LOG_ERRNO("failed to set O_NONBLOCK");
         goto err;
     }
@@ -2292,26 +2218,25 @@ begin_receive_clipboard(struct terminal *term, int read_fd,
     }
 
     ctx = xmalloc(sizeof(*ctx));
-    *ctx = (struct clipboard_receive) {
+    *ctx = (struct clipboard_receive){
         .read_fd = read_fd,
         .timeout_fd = timeout_fd,
         .timeout = timeout,
         .bracketed = term->bracketed_paste,
         .quote_paths = term->grid == &term->normal,
         .decoder = (mime_type == DATA_OFFER_MIME_URI_LIST
-                    ? &fdm_receive_decoder_uri
-                    : &fdm_receive_decoder_plain),
+                        ? &fdm_receive_decoder_uri
+                        : &fdm_receive_decoder_plain),
         .finish = (mime_type == DATA_OFFER_MIME_URI_LIST
-                   ? &fdm_receive_finish_uri
-                   : &fdm_receive_finish_plain),
+                       ? &fdm_receive_finish_uri
+                       : &fdm_receive_finish_plain),
         .cb = cb,
         .done = done,
         .user = user,
     };
 
     if (!fdm_add(term->fdm, read_fd, EPOLLIN, &fdm_receive, ctx) ||
-        !fdm_add(term->fdm, timeout_fd, EPOLLIN, &fdm_receive_timeout, ctx))
-    {
+        !fdm_add(term->fdm, timeout_fd, EPOLLIN, &fdm_receive_timeout, ctx)) {
         goto err;
     }
 
@@ -2324,15 +2249,12 @@ err:
     done(user);
 }
 
-void
-text_from_clipboard(struct seat *seat, struct terminal *term,
-                    void (*cb)(char *data, size_t size, void *user),
-                    void (*done)(void *user), void *user)
-{
+void text_from_clipboard(struct seat *seat, struct terminal *term,
+                         void (*cb)(char *data, size_t size, void *user),
+                         void (*done)(void *user), void *user) {
     struct wl_clipboard *clipboard = &seat->clipboard;
     if (clipboard->data_offer == NULL ||
-        clipboard->mime_type == DATA_OFFER_MIME_UNSET)
-    {
+        clipboard->mime_type == DATA_OFFER_MIME_UNSET) {
         done(user);
         return;
     }
@@ -2362,16 +2284,14 @@ text_from_clipboard(struct seat *seat, struct terminal *term,
 }
 
 static void
-receive_offer(char *data, size_t size, void *user)
-{
+receive_offer(char *data, size_t size, void *user) {
     struct terminal *term = user;
     xassert(term->is_sending_paste_data);
     term_paste_data_to_slave(term, data, size);
 }
 
 static void
-receive_offer_done(void *user)
-{
+receive_offer_done(void *user) {
     struct terminal *term = user;
 
     if (term->bracketed_paste)
@@ -2384,9 +2304,7 @@ receive_offer_done(void *user)
         fdm_event_add(term->fdm, term->ptmx, EPOLLOUT);
 }
 
-void
-selection_from_clipboard(struct seat *seat, struct terminal *term, uint32_t serial)
-{
+void selection_from_clipboard(struct seat *seat, struct terminal *term, uint32_t serial) {
     if (term->is_sending_paste_data) {
         /* We're already pasting... */
         return;
@@ -2404,9 +2322,7 @@ selection_from_clipboard(struct seat *seat, struct terminal *term, uint32_t seri
     text_from_clipboard(seat, term, &receive_offer, &receive_offer_done, term);
 }
 
-bool
-text_to_primary(struct seat *seat, struct terminal *term, char *text, uint32_t serial)
-{
+bool text_to_primary(struct seat *seat, struct terminal *term, char *text, uint32_t serial) {
     if (term->wl->primary_selection_device_manager == NULL)
         return false;
 
@@ -2429,9 +2345,8 @@ text_to_primary(struct seat *seat, struct terminal *term, char *text, uint32_t s
         primary->text = NULL;
     }
 
-    primary->data_source
-        = zwp_primary_selection_device_manager_v1_create_source(
-            term->wl->primary_selection_device_manager);
+    primary->data_source = zwp_primary_selection_device_manager_v1_create_source(
+        term->wl->primary_selection_device_manager);
 
     if (primary->data_source == NULL) {
         LOG_ERR("failed to create clipboard data source");
@@ -2456,9 +2371,7 @@ text_to_primary(struct seat *seat, struct terminal *term, char *text, uint32_t s
     return true;
 }
 
-void
-selection_to_primary(struct seat *seat, struct terminal *term, uint32_t serial)
-{
+void selection_to_primary(struct seat *seat, struct terminal *term, uint32_t serial) {
     if (term->wl->primary_selection_device_manager == NULL)
         return;
 
@@ -2468,12 +2381,10 @@ selection_to_primary(struct seat *seat, struct terminal *term, uint32_t serial)
         free(text);
 }
 
-void
-text_from_primary(
+void text_from_primary(
     struct seat *seat, struct terminal *term,
     void (*cb)(char *data, size_t size, void *user),
-    void (*done)(void *user), void *user)
-{
+    void (*done)(void *user), void *user) {
     if (term->wl->primary_selection_device_manager == NULL) {
         done(user);
         return;
@@ -2481,8 +2392,7 @@ text_from_primary(
 
     struct wl_primary *primary = &seat->primary;
     if (primary->data_offer == NULL ||
-        primary->mime_type == DATA_OFFER_MIME_UNSET)
-    {
+        primary->mime_type == DATA_OFFER_MIME_UNSET) {
         done(user);
         return;
     }
@@ -2511,9 +2421,7 @@ text_from_primary(
     begin_receive_clipboard(term, read_fd, primary->mime_type, cb, done, user);
 }
 
-void
-selection_from_primary(struct seat *seat, struct terminal *term)
-{
+void selection_from_primary(struct seat *seat, struct terminal *term) {
     if (term->wl->primary_selection_device_manager == NULL)
         return;
 
@@ -2535,8 +2443,7 @@ selection_from_primary(struct seat *seat, struct terminal *term)
 
 static void
 select_mime_type_for_offer(const char *_mime_type,
-                           enum data_offer_mime_type *type)
-{
+                           enum data_offer_mime_type *type) {
     enum data_offer_mime_type mime_type = DATA_OFFER_MIME_UNSET;
 
     /* Translate offered mime type to our mime type enum */
@@ -2599,8 +2506,7 @@ select_mime_type_for_offer(const char *_mime_type,
 }
 
 static void
-data_offer_reset(struct wl_clipboard *clipboard)
-{
+data_offer_reset(struct wl_clipboard *clipboard) {
     if (clipboard->data_offer != NULL) {
         wl_data_offer_destroy(clipboard->data_offer);
         clipboard->data_offer = NULL;
@@ -2611,16 +2517,14 @@ data_offer_reset(struct wl_clipboard *clipboard)
 }
 
 static void
-offer(void *data, struct wl_data_offer *wl_data_offer, const char *mime_type)
-{
+offer(void *data, struct wl_data_offer *wl_data_offer, const char *mime_type) {
     struct seat *seat = data;
     select_mime_type_for_offer(mime_type, &seat->clipboard.mime_type);
 }
 
 static void
 source_actions(void *data, struct wl_data_offer *wl_data_offer,
-                uint32_t source_actions)
-{
+               uint32_t source_actions) {
 #if defined(_DEBUG) && LOG_ENABLE_DBG
     char actions_as_string[1024];
     size_t idx = 0;
@@ -2637,10 +2541,18 @@ source_actions(void *data, struct wl_data_offer *wl_data_offer,
         const char *s = NULL;
 
         switch (action) {
-        case WL_DATA_DEVICE_MANAGER_DND_ACTION_NONE: s = NULL; break;
-        case WL_DATA_DEVICE_MANAGER_DND_ACTION_COPY: s = "copy"; break;
-        case WL_DATA_DEVICE_MANAGER_DND_ACTION_MOVE: s = "move"; break;
-        case WL_DATA_DEVICE_MANAGER_DND_ACTION_ASK: s = "ask"; break;
+        case WL_DATA_DEVICE_MANAGER_DND_ACTION_NONE:
+            s = NULL;
+            break;
+        case WL_DATA_DEVICE_MANAGER_DND_ACTION_COPY:
+            s = "copy";
+            break;
+        case WL_DATA_DEVICE_MANAGER_DND_ACTION_MOVE:
+            s = "move";
+            break;
+        case WL_DATA_DEVICE_MANAGER_DND_ACTION_ASK:
+            s = "ask";
+            break;
         }
 
         if (s == NULL)
@@ -2661,16 +2573,23 @@ source_actions(void *data, struct wl_data_offer *wl_data_offer,
 }
 
 static void
-offer_action(void *data, struct wl_data_offer *wl_data_offer, uint32_t dnd_action)
-{
+offer_action(void *data, struct wl_data_offer *wl_data_offer, uint32_t dnd_action) {
 #if defined(_DEBUG) && LOG_ENABLE_DBG
     const char *s = NULL;
 
     switch (dnd_action) {
-    case WL_DATA_DEVICE_MANAGER_DND_ACTION_NONE: s = "<none>"; break;
-    case WL_DATA_DEVICE_MANAGER_DND_ACTION_COPY: s = "copy"; break;
-    case WL_DATA_DEVICE_MANAGER_DND_ACTION_MOVE: s = "move"; break;
-    case WL_DATA_DEVICE_MANAGER_DND_ACTION_ASK: s = "ask"; break;
+    case WL_DATA_DEVICE_MANAGER_DND_ACTION_NONE:
+        s = "<none>";
+        break;
+    case WL_DATA_DEVICE_MANAGER_DND_ACTION_COPY:
+        s = "copy";
+        break;
+    case WL_DATA_DEVICE_MANAGER_DND_ACTION_MOVE:
+        s = "move";
+        break;
+    case WL_DATA_DEVICE_MANAGER_DND_ACTION_ASK:
+        s = "ask";
+        break;
     }
 
     LOG_DBG("DnD offer action: %s (0x%08x)", s, dnd_action);
@@ -2685,8 +2604,7 @@ static const struct wl_data_offer_listener data_offer_listener = {
 
 static void
 data_offer(void *data, struct wl_data_device *wl_data_device,
-           struct wl_data_offer *offer)
-{
+           struct wl_data_offer *offer) {
     struct seat *seat = data;
     data_offer_reset(&seat->clipboard);
     seat->clipboard.data_offer = offer;
@@ -2696,8 +2614,7 @@ data_offer(void *data, struct wl_data_device *wl_data_device,
 static void
 enter(void *data, struct wl_data_device *wl_data_device, uint32_t serial,
       struct wl_surface *surface, wl_fixed_t x, wl_fixed_t y,
-      struct wl_data_offer *offer)
-{
+      struct wl_data_offer *offer) {
     struct seat *seat = data;
     struct wayland *wayl = seat->wayl;
 
@@ -2710,8 +2627,7 @@ enter(void *data, struct wl_data_device *wl_data_device, uint32_t serial,
     xassert(seat->clipboard.window == NULL);
     tll_foreach(wayl->terms, it) {
         if (term_surface_kind(it->item, surface) == TERM_SURF_GRID &&
-            !it->item->is_sending_paste_data)
-        {
+            !it->item->is_sending_paste_data) {
             wl_data_offer_accept(
                 offer, serial, mime_type_map[seat->clipboard.mime_type]);
             wl_data_offer_set_actions(
@@ -2736,16 +2652,14 @@ reject_offer:
 }
 
 static void
-leave(void *data, struct wl_data_device *wl_data_device)
-{
+leave(void *data, struct wl_data_device *wl_data_device) {
     struct seat *seat = data;
     seat->clipboard.window = NULL;
 }
 
 static void
 motion(void *data, struct wl_data_device *wl_data_device, uint32_t time,
-       wl_fixed_t x, wl_fixed_t y)
-{
+       wl_fixed_t x, wl_fixed_t y) {
 }
 
 struct dnd_context {
@@ -2754,15 +2668,13 @@ struct dnd_context {
 };
 
 static void
-receive_dnd(char *data, size_t size, void *user)
-{
+receive_dnd(char *data, size_t size, void *user) {
     struct dnd_context *ctx = user;
     receive_offer(data, size, ctx->term);
 }
 
 static void
-receive_dnd_done(void *user)
-{
+receive_dnd_done(void *user) {
     struct dnd_context *ctx = user;
 
     wl_data_offer_finish(ctx->data_offer);
@@ -2772,8 +2684,7 @@ receive_dnd_done(void *user)
 }
 
 static void
-drop(void *data, struct wl_data_device *wl_data_device)
-{
+drop(void *data, struct wl_data_device *wl_data_device) {
     struct seat *seat = data;
 
     xassert(seat->clipboard.window != NULL);
@@ -2829,8 +2740,7 @@ drop(void *data, struct wl_data_device *wl_data_device)
 
 static void
 selection(void *data, struct wl_data_device *wl_data_device,
-          struct wl_data_offer *offer)
-{
+          struct wl_data_offer *offer) {
     /* Selection offer from other client */
     struct seat *seat = data;
     if (offer == NULL)
@@ -2851,8 +2761,7 @@ const struct wl_data_device_listener data_device_listener = {
 static void
 primary_offer(void *data,
               struct zwp_primary_selection_offer_v1 *zwp_primary_selection_offer,
-              const char *mime_type)
-{
+              const char *mime_type) {
     LOG_DBG("primary offer: %s", mime_type);
     struct seat *seat = data;
     select_mime_type_for_offer(mime_type, &seat->primary.mime_type);
@@ -2863,8 +2772,7 @@ static const struct zwp_primary_selection_offer_v1_listener primary_selection_of
 };
 
 static void
-primary_offer_reset(struct wl_primary *primary)
-{
+primary_offer_reset(struct wl_primary *primary) {
     if (primary->data_offer != NULL) {
         zwp_primary_selection_offer_v1_destroy(primary->data_offer);
         primary->data_offer = NULL;
@@ -2876,8 +2784,7 @@ primary_offer_reset(struct wl_primary *primary)
 static void
 primary_data_offer(void *data,
                    struct zwp_primary_selection_device_v1 *zwp_primary_selection_device,
-                   struct zwp_primary_selection_offer_v1 *offer)
-{
+                   struct zwp_primary_selection_offer_v1 *offer) {
     struct seat *seat = data;
     primary_offer_reset(&seat->primary);
     seat->primary.data_offer = offer;
@@ -2888,8 +2795,7 @@ primary_data_offer(void *data,
 static void
 primary_selection(void *data,
                   struct zwp_primary_selection_device_v1 *zwp_primary_selection_device,
-                  struct zwp_primary_selection_offer_v1 *offer)
-{
+                  struct zwp_primary_selection_offer_v1 *offer) {
     /* Selection offer from other client, for primary */
 
     struct seat *seat = data;
@@ -2903,4 +2809,3 @@ const struct zwp_primary_selection_device_v1_listener primary_selection_device_l
     .data_offer = &primary_data_offer,
     .selection = &primary_selection,
 };
-

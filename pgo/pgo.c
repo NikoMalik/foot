@@ -19,50 +19,42 @@
 #include "user-notification.h"
 #include "vt.h"
 
+inline bool fdm_del_no_close(struct fdm *fdm, int fd) {
+    return true;
+}
+
 extern bool fdm_ptmx(struct fdm *fdm, int fd, int events, void *data);
 
 static void
-usage(const char *prog_name)
-{
+usage(const char *prog_name) {
     printf(
         "Usage: %s stimuli-file1 stimuli-file2 ... stimuli-fileN\n",
         prog_name);
 }
 
 enum async_write_status
-async_write(int fd, const void *data, size_t len, size_t *idx)
-{
+async_write(int fd, const void *data, size_t len, size_t *idx) {
     return ASYNC_WRITE_DONE;
 }
 
-bool
-fdm_add(struct fdm *fdm, int fd, int events, fdm_fd_handler_t handler, void *data)
-{
+bool fdm_add(struct fdm *fdm, int fd, int events, fdm_fd_handler_t handler, void *data) {
     return true;
 }
 
-bool
-fdm_del(struct fdm *fdm, int fd)
-{
+bool fdm_del(struct fdm *fdm, int fd) {
     return true;
 }
 
-bool
-fdm_event_add(struct fdm *fdm, int fd, int events)
-{
+bool fdm_event_add(struct fdm *fdm, int fd, int events) {
     return true;
 }
 
-bool
-fdm_event_del(struct fdm *fdm, int fd, int events)
-{
+bool fdm_event_del(struct fdm *fdm, int fd, int events) {
     return true;
 }
 
-bool
-render_resize(
-    struct terminal *term, int width, int height, uint8_t resize_options)
-{
+bool render_resize(
+    struct terminal *term, int width, int height, uint8_t resize_options) {
     return true;
 }
 
@@ -76,27 +68,21 @@ void render_overlay(struct terminal *term) {}
 
 void render_buffer_release_callback(struct vk_buffer *buf, void *data) {}
 
-bool
-render_xcursor_is_valid(const struct seat *seat, const char *cursor)
-{
+bool render_xcursor_is_valid(const struct seat *seat, const char *cursor) {
     return true;
 }
 
-bool
-render_xcursor_set(struct seat *seat, struct terminal *term, enum cursor_shape shape)
-{
+bool render_xcursor_set(struct seat *seat, struct terminal *term, enum cursor_shape shape) {
     return true;
 }
 
 enum cursor_shape
-xcursor_for_csd_border(struct terminal *term, int x, int y)
-{
+xcursor_for_csd_border(struct terminal *term, int x, int y) {
     return CURSOR_SHAPE_LEFT_PTR;
 }
 
 struct wl_window *
-wayl_win_init(struct terminal *term, const char *token)
-{
+wayl_win_init(struct terminal *term, const char *token) {
     return NULL;
 }
 
@@ -106,53 +92,40 @@ bool wayl_win_set_urgent(struct wl_window *win) { return true; }
 bool wayl_win_ring_bell(const struct wl_window *win) { return true; }
 bool wayl_fractional_scaling(const struct wayland *wayl) { return true; }
 
-pid_t
-spawn(struct reaper *reaper, const char *cwd, char *const argv[],
-      int stdin_fd, int stdout_fd, int stderr_fd,
-      reaper_cb cb, void *cb_data, const char *xdg_activation_token)
-{
+pid_t spawn(struct reaper *reaper, const char *cwd, char *const argv[],
+            int stdin_fd, int stdout_fd, int stderr_fd,
+            reaper_cb cb, void *cb_data, const char *xdg_activation_token) {
     return 2;
 }
 
-pid_t
-slave_spawn(
+pid_t slave_spawn(
     int ptmx, int argc, const char *cwd, char *const *argv, char *const *envp,
     const env_var_list_t *extra_env_vars, const char *term_env,
     const char *conf_shell, bool login_shell,
-    const user_notifications_t *notifications)
-{
+    const user_notifications_t *notifications) {
     return 0;
 }
 
-int
-render_worker_thread(void *_ctx)
-{
+int render_worker_thread(void *_ctx) {
     return 0;
 }
 
-bool
-wayl_do_linear_blending(const struct wayland *wayl, const struct config *conf)
-{
+bool wayl_do_linear_blending(const struct wayland *wayl, const struct config *conf) {
     return false;
 }
 
 struct extraction_context *
-extract_begin(enum selection_kind kind, bool strip_trailing_empty)
-{
+extract_begin(enum selection_kind kind, bool strip_trailing_empty) {
     return NULL;
 }
 
-bool
-extract_one(
+bool extract_one(
     const struct terminal *term, const struct row *row, const struct cell *cell,
-    int col, void *context)
-{
+    int col, void *context) {
     return true;
 }
 
-bool
-extract_finish(struct extraction_context *context, char **text, size_t *len)
-{
+bool extract_finish(struct extraction_context *context, char **text, size_t *len) {
     return true;
 }
 
@@ -163,37 +136,25 @@ void ime_enable(struct seat *seat) {}
 void ime_disable(struct seat *seat) {}
 void ime_reset_preedit(struct seat *seat) {}
 
-bool
-notify_notify(struct terminal *term, struct notification *notif)
-{
+bool notify_notify(struct terminal *term, struct notification *notif) {
     return true;
 }
 
-void
-notify_close(struct terminal *term, const char *id)
-{
+void notify_close(struct terminal *term, const char *id) {
 }
 
-void
-notify_free(struct terminal *term, struct notification *notif)
-{
+void notify_free(struct terminal *term, struct notification *notif) {
 }
 
-void
-notify_icon_add(struct terminal *term, const char *id,
-                const char *symbolic_name, const uint8_t *data,
-                size_t data_sz)
-{
+void notify_icon_add(struct terminal *term, const char *id,
+                     const char *symbolic_name, const uint8_t *data,
+                     size_t data_sz) {
 }
 
-void
-notify_icon_del(struct terminal *term, const char *id)
-{
+void notify_icon_del(struct terminal *term, const char *id) {
 }
 
-void
-notify_icon_free(struct notification_icon *icon)
-{
+void notify_icon_free(struct notification_icon *icon) {
 }
 
 void reaper_add(struct reaper *reaper, pid_t pid, reaper_cb cb, void *cb_data) {}
@@ -209,11 +170,9 @@ struct buffer_chain *
 shm_chain_new(
     struct wayland *wayl, bool scrollable, size_t pix_instances,
     enum shm_bit_depth desired_bit_depth,
-    void (*release_cb)(struct buffer *buf, void *data), void *cb_data)
-{
+    void (*release_cb)(struct buffer *buf, void *data), void *cb_data) {
     return NULL;
 }
-
 
 void search_selection_cancelled(struct terminal *term) {}
 
@@ -228,16 +187,13 @@ static bool kbd_initialized = false;
 struct key_binding_set *
 key_binding_for(
     struct key_binding_manager *mgr, const struct config *conf,
-    const struct seat *seat)
-{
+    const struct seat *seat) {
     return &kbd;
 }
 
-void
-key_binding_new_for_conf(
+void key_binding_new_for_conf(
     struct key_binding_manager *mgr, const struct wayland *wayl,
-    const struct config *conf)
-{
+    const struct config *conf) {
     if (!kbd_initialized) {
         kbd_initialized = true;
         kbd = (struct key_binding_set){
@@ -250,14 +206,10 @@ key_binding_new_for_conf(
     }
 }
 
-void
-key_binding_unref(struct key_binding_manager *mgr, const struct config *conf)
-{
+void key_binding_unref(struct key_binding_manager *mgr, const struct config *conf) {
 }
 
-int
-main(int argc, const char *const *argv)
-{
+int main(int argc, const char *const *argv) {
     if (argc < 2) {
         usage(argv[0]);
         return EXIT_FAILURE;
@@ -289,8 +241,8 @@ main(int argc, const char *const *argv)
 
     struct config conf = {
         .tweak = {
-            .delayed_render_lower_ns = 500000,         /* 0.5ms */
-            .delayed_render_upper_ns = 16666666 / 2,   /* half a frame period (60Hz) */
+            .delayed_render_lower_ns = 500000,       /* 0.5ms */
+            .delayed_render_upper_ns = 16666666 / 2, /* half a frame period (60Hz) */
         },
     };
 
@@ -333,10 +285,7 @@ main(int argc, const char *const *argv)
                 .end = {-1, -1},
             },
         },
-        .delayed_render_timer = {
-            .lower_fd = lower_fd,
-            .upper_fd = upper_fd
-        },
+        .delayed_render_timer = {.lower_fd = lower_fd, .upper_fd = upper_fd},
         .sixel = {
             .palette_size = SIXEL_MAX_COLORS,
             .max_width = SIXEL_MAX_WIDTH,
