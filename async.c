@@ -9,8 +9,7 @@
 #include "log.h"
 
 enum async_write_status
-async_write(int fd, const void *_data, size_t len, size_t *idx)
-{
+async_write(int fd, const void *_data, size_t len, size_t *idx) {
     const uint8_t *const data = _data;
     size_t left = len - *idx;
 

@@ -35,12 +35,11 @@
 #include "xsnprintf.h"
 
 #if !defined(__STDC_UTF_32__) || !__STDC_UTF_32__
- #error "char32_t does not use UTF-32"
+#error "char32_t does not use UTF-32"
 #endif
 
 static bool
-fdm_sigint(struct fdm *fdm, int signo, void *data)
-{
+fdm_sigint(struct fdm *fdm, int signo, void *data) {
     *(volatile sig_atomic_t *)data = true;
     return true;
 }
@@ -51,8 +50,7 @@ struct sigusr_context {
 };
 
 static bool
-fdm_sigusr(struct fdm *fdm, int signo, void *data)
-{
+fdm_sigusr(struct fdm *fdm, int signo, void *data) {
     xassert(signo == SIGUSR1 || signo == SIGUSR2);
 
     struct sigusr_context *ctx = data;
@@ -73,8 +71,7 @@ fdm_sigusr(struct fdm *fdm, int signo, void *data)
 }
 
 static void
-print_usage(const char *prog_name)
-{
+print_usage(const char *prog_name) {
     static const char options[] =
         "\nOptions:\n"
         "  -c,--config=PATH                         load configuration from PATH ($XDG_CONFIG_HOME/foot/foot.ini)\n"
@@ -107,9 +104,7 @@ print_usage(const char *prog_name)
     puts(options);
 }
 
-bool
-locale_is_utf8(void)
-{
+bool locale_is_utf8(void) {
     static const char u8[] = u8"ö";
     xassert(strlen(u8) == 2);
 
@@ -126,16 +121,14 @@ struct shutdown_context {
 };
 
 static void
-term_shutdown_cb(void *data, int exit_code)
-{
+term_shutdown_cb(void *data, int exit_code) {
     struct shutdown_context *ctx = data;
     *ctx->term = NULL;
     ctx->exit_code = exit_code;
 }
 
 static bool
-print_pid(const char *pid_file, bool *unlink_at_exit)
-{
+print_pid(const char *pid_file, bool *unlink_at_exit) {
     LOG_DBG("printing PID to %s", pid_file);
 
     errno = 0;
@@ -171,8 +164,7 @@ print_pid(const char *pid_file, bool *unlink_at_exit)
 }
 
 static void
-sanitize_signals(void)
-{
+sanitize_signals(void) {
     sigset_t mask;
     sigemptyset(&mask);
     sigprocmask(SIG_SETMASK, &mask, NULL);
@@ -189,9 +181,7 @@ enum {
     TOPLEVEL_TAG_OPTION = CHAR_MAX + 2,
 };
 
-int
-main(int argc, char *const *argv)
-{
+int main(int argc, char *const *argv) {
     /* Custom exit code, to enable users to differentiate between foot
      * itself failing, and the client application failing */
     static const int foot_exit_failure = -26;
@@ -209,32 +199,32 @@ main(int argc, char *const *argv)
 
     const char *const prog_name = argc > 0 ? argv[0] : "<nullptr>";
 
-    static const struct option longopts[] =  {
-        {"config",                 required_argument, NULL, 'c'},
-        {"check-config",           no_argument,       NULL, 'C'},
-        {"override",               required_argument, NULL, 'o'},
-        {"term",                   required_argument, NULL, 't'},
-        {"title",                  required_argument, NULL, 'T'},
-        {"app-id",                 required_argument, NULL, 'a'},
-        {"toplevel-tag",           required_argument, NULL, TOPLEVEL_TAG_OPTION},
-        {"login-shell",            no_argument,       NULL, 'L'},
-        {"working-directory",      required_argument, NULL, 'D'},
-        {"font",                   required_argument, NULL, 'f'},
-        {"window-size-pixels",     required_argument, NULL, 'w'},
-        {"window-size-chars",      required_argument, NULL, 'W'},
-        {"server",                 optional_argument, NULL, 's'},
-        {"hold",                   no_argument,       NULL, 'H'},
-        {"maximized",              no_argument,       NULL, 'm'},
-        {"fullscreen",             no_argument,       NULL, 'F'},
-        {"presentation-timings",   no_argument,       NULL, 'P'}, /* Undocumented */
-        {"pty",                    required_argument, NULL, PTY_OPTION},
-        {"print-pid",              required_argument, NULL, 'p'},
-        {"log-level",              required_argument, NULL, 'd'},
-        {"log-colorize",           optional_argument, NULL, 'l'},
-        {"log-no-syslog",          no_argument,       NULL, 'S'},
-        {"version",                no_argument,       NULL, 'v'},
-        {"help",                   no_argument,       NULL, 'h'},
-        {NULL,                     no_argument,       NULL,   0},
+    static const struct option longopts[] = {
+        {"config", required_argument, NULL, 'c'},
+        {"check-config", no_argument, NULL, 'C'},
+        {"override", required_argument, NULL, 'o'},
+        {"term", required_argument, NULL, 't'},
+        {"title", required_argument, NULL, 'T'},
+        {"app-id", required_argument, NULL, 'a'},
+        {"toplevel-tag", required_argument, NULL, TOPLEVEL_TAG_OPTION},
+        {"login-shell", no_argument, NULL, 'L'},
+        {"working-directory", required_argument, NULL, 'D'},
+        {"font", required_argument, NULL, 'f'},
+        {"window-size-pixels", required_argument, NULL, 'w'},
+        {"window-size-chars", required_argument, NULL, 'W'},
+        {"server", optional_argument, NULL, 's'},
+        {"hold", no_argument, NULL, 'H'},
+        {"maximized", no_argument, NULL, 'm'},
+        {"fullscreen", no_argument, NULL, 'F'},
+        {"presentation-timings", no_argument, NULL, 'P'}, /* Undocumented */
+        {"pty", required_argument, NULL, PTY_OPTION},
+        {"print-pid", required_argument, NULL, 'p'},
+        {"log-level", required_argument, NULL, 'd'},
+        {"log-colorize", optional_argument, NULL, 'l'},
+        {"log-no-syslog", no_argument, NULL, 'S'},
+        {"version", no_argument, NULL, 'v'},
+        {"help", no_argument, NULL, 'h'},
+        {NULL, no_argument, NULL, 0},
     };
 
     bool check_config = false;
@@ -547,7 +537,6 @@ main(int argc, char *const *argv)
             conf.fonts[0].arr[0].pattern, &conf.notifications);
     }
 
-
     if (bad_locale) {
         static char *const bad_locale_fake_argv[] = {"/bin/sh", "-c", "", NULL};
         argc = 1;
@@ -588,8 +577,7 @@ main(int argc, char *const *argv)
 
         if (resolved_path_cwd != NULL &&
             resolved_path_pwd != NULL &&
-            streq(resolved_path_cwd, resolved_path_pwd))
-        {
+            streq(resolved_path_cwd, resolved_path_pwd)) {
             /*
              * The resolved path of $PWD matches the resolved path of
              * the *actual* working directory - use $PWD.
@@ -616,8 +604,7 @@ main(int argc, char *const *argv)
         goto out;
 
     if ((wayl = wayl_init(
-             fdm, key_binding_manager, conf.presentation_timings)) == NULL)
-    {
+             fdm, key_binding_manager, conf.presentation_timings)) == NULL) {
         goto out;
     }
 
@@ -638,8 +625,7 @@ main(int argc, char *const *argv)
 
     volatile sig_atomic_t aborted = false;
     if (!fdm_signal_add(fdm, SIGINT, &fdm_sigint, (void *)&aborted) ||
-        !fdm_signal_add(fdm, SIGTERM, &fdm_sigint, (void *)&aborted))
-    {
+        !fdm_signal_add(fdm, SIGTERM, &fdm_sigint, (void *)&aborted)) {
         goto out;
     }
 
@@ -649,16 +635,14 @@ main(int argc, char *const *argv)
     };
 
     if (!fdm_signal_add(fdm, SIGUSR1, &fdm_sigusr, &sigusr_context) ||
-        !fdm_signal_add(fdm, SIGUSR2, &fdm_sigusr, &sigusr_context))
-    {
+        !fdm_signal_add(fdm, SIGUSR2, &fdm_sigusr, &sigusr_context)) {
         goto out;
     }
 
     struct sigaction sig_ign = {.sa_handler = SIG_IGN};
     sigemptyset(&sig_ign.sa_mask);
     if (sigaction(SIGHUP, &sig_ign, NULL) < 0 ||
-        sigaction(SIGPIPE, &sig_ign, NULL) < 0)
-    {
+        sigaction(SIGPIPE, &sig_ign, NULL) < 0) {
         LOG_ERRNO("failed to ignore SIGHUP+SIGPIPE");
         goto out;
     }
@@ -680,7 +664,7 @@ main(int argc, char *const *argv)
     }
 
 out:
-    free(_cwd);
+    xfree(_cwd);
     server_destroy(server);
     term_destroy(term);
 
@@ -706,8 +690,7 @@ out:
     return ret == EXIT_SUCCESS && !as_server ? shutdown_ctx.exit_code : ret;
 }
 
-UNITTEST
-{
+UNITTEST {
     char *s = xstrjoin("foo", "bar");
     xassert(streq(s, "foobar"));
     free(s);

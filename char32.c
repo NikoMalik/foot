@@ -8,9 +8,9 @@
 #include <wchar.h>
 
 #if defined __has_include
- #if __has_include (<stdc-predef.h>)
-   #include <stdc-predef.h>
- #endif
+#if __has_include(<stdc-predef.h>)
+#include <stdc-predef.h>
+#endif
 #endif
 
 #define LOG_MODULE "char32"
@@ -32,20 +32,18 @@ _Static_assert(
     sizeof(wchar_t) == sizeof(char32_t), "wchar_t vs. char32_t size mismatch");
 
 #if !defined(__STDC_UTF_32__) || !__STDC_UTF_32__
- #error "char32_t does not use UTF-32"
+#error "char32_t does not use UTF-32"
 #endif
 #if (!defined(__STDC_ISO_10646__) || !__STDC_ISO_10646__) && !defined(__FreeBSD__)
- #error "wchar_t does not use UTF-32"
+#error "wchar_t does not use UTF-32"
 #endif
 
-UNITTEST
-{
+UNITTEST {
     xassert(c32len(U"") == 0);
     xassert(c32len(U"foobar") == 6);
 }
 
-UNITTEST
-{
+UNITTEST {
     xassert(c32cmp(U"foobar", U"foobar") == 0);
     xassert(c32cmp(U"foo", U"foobar") < 0);
     xassert(c32cmp(U"foobar", U"foo") > 0);
@@ -53,16 +51,14 @@ UNITTEST
     xassert(c32cmp(U"b", U"a") > 0);
 }
 
-UNITTEST
-{
+UNITTEST {
     xassert(c32ncmp(U"foo", U"foot", 3) == 0);
     xassert(c32ncmp(U"foot", U"FOOT", 4) > 0);
     xassert(c32ncmp(U"a", U"b", 1) < 0);
     xassert(c32ncmp(U"bb", U"aa", 2) > 0);
 }
 
-UNITTEST
-{
+UNITTEST {
     char32_t copy[16];
     char32_t *ret = c32ncpy(copy, U"foobar", 16);
 
@@ -78,8 +74,7 @@ UNITTEST
     xassert(memcmp(&copy[6], zeroes, sizeof(zeroes)) == 0);
 }
 
-UNITTEST
-{
+UNITTEST {
     char32_t copy[16];
     memset(copy, 0x55, sizeof(copy));
 
@@ -99,8 +94,7 @@ UNITTEST
     xassert(memcmp(&copy[7], fives, sizeof(fives)) == 0);
 }
 
-UNITTEST
-{
+UNITTEST {
     xassert(c32casecmp(U"foobar", U"FOOBAR") == 0);
     xassert(c32casecmp(U"foo", U"FOOO") < 0);
     xassert(c32casecmp(U"FOOO", U"foo") > 0);
@@ -108,8 +102,7 @@ UNITTEST
     xassert(c32casecmp(U"B", U"a") > 0);
 }
 
-UNITTEST
-{
+UNITTEST {
     xassert(c32ncasecmp(U"foo", U"FOObar", 3) == 0);
     xassert(c32ncasecmp(U"foo", U"FOOO", 4) < 0);
     xassert(c32ncasecmp(U"FOOO", U"foo", 4) > 0);
@@ -117,8 +110,7 @@ UNITTEST
     xassert(c32ncasecmp(U"BB", U"a", 1) > 0);
 }
 
-UNITTEST
-{
+UNITTEST {
     char32_t dst[32] = U"foobar";
     char32_t *ret = c32ncat(dst, U"12345678XXXXXXXXX", 8);
 
@@ -126,8 +118,7 @@ UNITTEST
     xassert(c32cmp(dst, U"foobar12345678") == 0);
 }
 
-UNITTEST
-{
+UNITTEST {
     char32_t dst[32] = U"foobar";
     char32_t *ret = c32cat(dst, U"12345678");
 
@@ -135,34 +126,30 @@ UNITTEST
     xassert(c32cmp(dst, U"foobar12345678") == 0);
 }
 
-UNITTEST
-{
+UNITTEST {
     xassert(!isc32upper(U'a'));
     xassert(isc32upper(U'A'));
     xassert(!isc32upper(U'a'));
 }
 
-UNITTEST
-{
+UNITTEST {
     xassert(hasc32upper(U"abc1A"));
     xassert(!hasc32upper(U"abc1_aaa"));
     xassert(!hasc32upper(U""));
 }
 
-UNITTEST
-{
+UNITTEST {
     char32_t *c = xc32dup(U"foobar");
     xassert(c32cmp(c, U"foobar") == 0);
-    free(c);
+    xfree(c);
 
     c = xc32dup(U"");
     xassert(c32cmp(c, U"") == 0);
-    free(c);
+    xfree(c);
 }
 
 size_t
-mbsntoc32(char32_t *dst, const char *src, size_t nms, size_t len)
-{
+mbsntoc32(char32_t *dst, const char *src, size_t nms, size_t len) {
     mbstate_t ps = {0};
 
     char32_t *out = dst;
@@ -174,8 +161,7 @@ mbsntoc32(char32_t *dst, const char *src, size_t nms, size_t len)
 
     while ((out == NULL || chars < len) &&
            consumed < nms &&
-           (rc = mbrtoc32(out, in, nms - consumed, &ps)) != 0)
-    {
+           (rc = mbrtoc32(out, in, nms - consumed, &ps)) != 0) {
         switch (rc) {
         case 0:
             goto done;
@@ -201,8 +187,7 @@ err:
     return (size_t)-1;
 }
 
-UNITTEST
-{
+UNITTEST {
     const char input[] = "foobarzoo";
     char32_t c32[32];
 
@@ -240,8 +225,7 @@ UNITTEST
     xassert(c32[1] == 0x55555555);
 }
 
-UNITTEST
-{
+UNITTEST {
     const char input[] = "foobarzoo";
     char32_t c32[32];
 
@@ -272,10 +256,8 @@ UNITTEST
     xassert(c32[1] == 0x55555555);
 }
 
-
 char32_t *
-ambstoc32(const char *src)
-{
+ambstoc32(const char *src) {
     if (src == NULL)
         return NULL;
 
@@ -310,13 +292,12 @@ ambstoc32(const char *src)
     return ret;
 
 err:
-    free(ret);
+    xfree(ret);
     return NULL;
 }
 
-UNITTEST
-{
-    const char* locale = setlocale(LC_CTYPE, "en_US.UTF-8");
+UNITTEST {
+    const char *locale = setlocale(LC_CTYPE, "en_US.UTF-8");
     if (!locale)
         locale = setlocale(LC_CTYPE, "C.UTF-8");
     if (!locale)
@@ -330,7 +311,7 @@ UNITTEST
     xassert(hello[3] == U'l');
     xassert(hello[4] == U'o');
     xassert(hello[5] == U'\0');
-    free(hello);
+    xfree(hello);
 
     char32_t *swedish = ambstoc32(u8"åäö");
     xassert(swedish != NULL);
@@ -338,7 +319,7 @@ UNITTEST
     xassert(swedish[1] == U'ä');
     xassert(swedish[2] == U'ö');
     xassert(swedish[3] == U'\0');
-    free(swedish);
+    xfree(swedish);
 
     char32_t *emoji = ambstoc32(u8"👨‍👩‍👧‍👦");
     xassert(emoji != NULL);
@@ -350,15 +331,14 @@ UNITTEST
     xassert(emoji[5] == U'‍');
     xassert(emoji[6] == U'👦');
     xassert(emoji[7] == U'\0');
-    free(emoji);
+    xfree(emoji);
 
     xassert(ambstoc32(NULL) == NULL);
     xassert(setlocale(LC_CTYPE, "C") != NULL);
 }
 
 char *
-ac32tombs(const char32_t *src)
-{
+ac32tombs(const char32_t *src) {
     if (src == NULL)
         return NULL;
 
@@ -400,13 +380,12 @@ ac32tombs(const char32_t *src)
     return ret;
 
 err:
-    free(ret);
+    xfree(ret);
     return NULL;
 }
 
-UNITTEST
-{
-    const char* locale = setlocale(LC_CTYPE, "en_US.UTF-8");
+UNITTEST {
+    const char *locale = setlocale(LC_CTYPE, "en_US.UTF-8");
     if (!locale)
         locale = setlocale(LC_CTYPE, "C.UTF-8");
     if (!locale)
@@ -415,17 +394,17 @@ UNITTEST
     char *s = ac32tombs(U"foobar");
     xassert(s != NULL);
     xassert(strcmp(s, "foobar") == 0);
-    free(s);
+    xfree(s);
 
     s = ac32tombs(U"åäö");
     xassert(s != NULL);
     xassert(strcmp(s, u8"åäö") == 0);
-    free(s);
+    xfree(s);
 
     s = ac32tombs(U"👨‍👩‍👧‍👦");
     xassert(s != NULL);
     xassert(strcmp(s, u8"👨‍👩‍👧‍👦") == 0);
-    free(s);
+    xfree(s);
 
     xassert(ac32tombs(NULL) == NULL);
     xassert(setlocale(LC_CTYPE, "C") != NULL);

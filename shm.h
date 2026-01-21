@@ -55,7 +55,7 @@ struct buffer_chain *shm_chain_new(
 void shm_chain_free(struct buffer_chain *chain);
 
 enum shm_bit_depth shm_chain_bit_depth(const struct buffer_chain *chain);
- 
+
 /*
  * Returns a single buffer.
  *

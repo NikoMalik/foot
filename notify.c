@@ -20,29 +20,27 @@
 #include "xmalloc.h"
 #include "xsnprintf.h"
 
-void
-notify_free(struct terminal *term, struct notification *notif)
-{
+void notify_free(struct terminal *term, struct notification *notif) {
     if (notif->pid > 0)
         fdm_del(term->fdm, notif->stdout_fd);
 
-    free(notif->id);
-    free(notif->title);
-    free(notif->body);
-    free(notif->category);
-    free(notif->app_id);
-    free(notif->icon_cache_id);
-    free(notif->icon_symbolic_name);
-    free(notif->icon_data);
-    free(notif->sound_name);
-    free(notif->xdg_token);
-    free(notif->stdout_data);
+    xfree(notif->id);
+    xfree(notif->title);
+    xfree(notif->body);
+    xfree(notif->category);
+    xfree(notif->app_id);
+    xfree(notif->icon_cache_id);
+    xfree(notif->icon_symbolic_name);
+    xfree(notif->icon_data);
+    xfree(notif->sound_name);
+    xfree(notif->xdg_token);
+    xfree(notif->stdout_data);
 
     tll_free_and_free(notif->actions, free);
 
     if (notif->icon_path != NULL) {
         unlink(notif->icon_path);
-        free(notif->icon_path);
+        xfree(notif->icon_path);
 
         if (notif->icon_fd >= 0)
             close(notif->icon_fd);
@@ -53,8 +51,7 @@ notify_free(struct terminal *term, struct notification *notif)
 
 static bool
 write_icon_file(const void *data, size_t data_sz, int *fd, char **filename,
-                char **symbolic_name)
-{
+                char **symbolic_name) {
     xassert(*filename == NULL);
     xassert(*symbolic_name == NULL);
 
@@ -83,8 +80,7 @@ write_icon_file(const void *data, size_t data_sz, int *fd, char **filename,
 }
 
 static bool
-to_integer(const char *line, size_t len, uint32_t *res)
-{
+to_integer(const char *line, size_t len, uint32_t *res) {
     bool is_id = true;
     uint32_t maybe_id = 0;
 
@@ -104,8 +100,7 @@ to_integer(const char *line, size_t len, uint32_t *res)
 }
 
 static void
-consume_stdout(struct notification *notif, bool eof)
-{
+consume_stdout(struct notification *notif, bool eof) {
     char *data = notif->stdout_data;
     const char *line = data;
     size_t left = notif->stdout_sz;
@@ -129,16 +124,14 @@ consume_stdout(struct notification *notif, bool eof)
         /* Check for daemon assigned ID, either '123', or 'id=123' */
         if ((notif->external_id == 0 && to_integer(line, len, &maybe_id)) ||
             (len > 3 && memcmp(line, "id=", 3) == 0 &&
-             to_integer(&line[3], len - 3, &maybe_id)))
-        {
+             to_integer(&line[3], len - 3, &maybe_id))) {
             notif->external_id = maybe_id;
             LOG_DBG("external ID: %u", notif->external_id);
         }
 
         /* Check for triggered action, either 'default' or 'action=default' */
         else if ((len == 7 && memcmp(line, "default", 7) == 0) ||
-                 (len == 7 + 7 && memcmp(line, "action=default", 7 + 7) == 0))
-        {
+                 (len == 7 + 7 && memcmp(line, "action=default", 7 + 7) == 0)) {
             notif->activated = true;
             LOG_DBG("notification's default action was triggered");
         }
@@ -158,8 +151,7 @@ consume_stdout(struct notification *notif, bool eof)
         else if (notif->external_id > 0 &&
                  to_integer(line, len, &maybe_button_nr) &&
                  maybe_button_nr > 0 &&
-                 maybe_button_nr <= notif->button_count)
-        {
+                 maybe_button_nr <= notif->button_count) {
             /* Single integer, appearing *after* the ID, and is within
                the custom button/action range */
             notif->activated = true;
@@ -183,8 +175,7 @@ consume_stdout(struct notification *notif, bool eof)
 }
 
 static bool
-fdm_notify_stdout(struct fdm *fdm, int fd, int events, void *data)
-{
+fdm_notify_stdout(struct fdm *fdm, int fd, int events, void *data) {
     const struct terminal *term = data;
     struct notification *notif = NULL;
 
@@ -234,8 +225,7 @@ fdm_notify_stdout(struct fdm *fdm, int fd, int events, void *data)
 }
 
 static void
-notif_done(struct reaper *reaper, pid_t pid, int status, void *data)
-{
+notif_done(struct reaper *reaper, pid_t pid, int status, void *data) {
     struct terminal *term = data;
 
     tll_foreach(term->active_notifications, it) {
@@ -291,17 +281,15 @@ notif_done(struct reaper *reaper, pid_t pid, int status, void *data)
 
 static bool
 expand_action_to_argv(struct terminal *term, const char *name, const char *label,
-                      size_t *argc, char ***argv)
-{
+                      size_t *argc, char ***argv) {
     char **expanded = NULL;
     size_t count = 0;
 
     if (!spawn_expand_template(
-        &term->conf->desktop_notifications.command_action_arg, 2,
-        (const char *[]){"action-name", "action-label"},
-        (const char *[]){name, label},
-        &count, &expanded))
-    {
+            &term->conf->desktop_notifications.command_action_arg, 2,
+            (const char *[]){"action-name", "action-label"},
+            (const char *[]){name, label},
+            &count, &expanded)) {
         return false;
     }
 
@@ -314,9 +302,7 @@ expand_action_to_argv(struct terminal *term, const char *name, const char *label
     return true;
 }
 
-bool
-notify_notify(struct terminal *term, struct notification *notif)
-{
+bool notify_notify(struct terminal *term, struct notification *notif) {
     xassert(notif->xdg_token == NULL);
     xassert(notif->external_id == 0);
     xassert(notif->pid == 0);
@@ -333,18 +319,17 @@ notify_notify(struct terminal *term, struct notification *notif)
         return false;
 
     if ((term->conf->desktop_notifications.inhibit_when_focused ||
-         notif->when != NOTIFY_ALWAYS)
-        && term->kbd_focus)
-    {
+         notif->when != NOTIFY_ALWAYS) &&
+        term->kbd_focus) {
         /* No notifications while we're focused */
         return false;
     }
 
     const char *app_id = notif->app_id != NULL
-        ? notif->app_id
-        : term->app_id != NULL
-            ? term->app_id
-            : term->conf->app_id;
+                             ? notif->app_id
+                         : term->app_id != NULL
+                             ? term->app_id
+                             : term->conf->app_id;
     const char *title = notif->title != NULL ? notif->title : notif->body;
     const char *body = notif->title != NULL && notif->body != NULL ? notif->body : "";
 
@@ -373,10 +358,10 @@ notify_notify(struct terminal *term, struct notification *notif)
         xassert(notif->icon_data != NULL);
 
         if (write_icon_file(
-            notif->icon_data, notif->icon_data_sz,
-            &notif->icon_fd,
-            &notif->icon_path,
-            &notif->icon_symbolic_name))
+                notif->icon_data, notif->icon_data_sz,
+                &notif->icon_fd,
+                &notif->icon_path,
+                &notif->icon_symbolic_name))
             icon_name_or_path = notif->icon_symbolic_name;
 
         LOG_DBG("using icon data from notification: %s", icon_name_or_path);
@@ -418,8 +403,9 @@ notify_notify(struct terminal *term, struct notification *notif)
     const char *urgency_str =
         notif->urgency == NOTIFY_URGENCY_LOW
             ? "low"
-            : notif->urgency == NOTIFY_URGENCY_NORMAL
-                ? "normal" : "critical";
+        : notif->urgency == NOTIFY_URGENCY_NORMAL
+            ? "normal"
+            : "critical";
 
     LOG_DBG("notify: title=\"%s\", body=\"%s\", app-id=\"%s\", category=\"%s\", "
             "urgency=\"%s\", icon=\"%s\", expires=%d, replaces=%u, muted=%s, "
@@ -443,8 +429,7 @@ notify_notify(struct terminal *term, struct notification *notif)
 
     if (term->conf->desktop_notifications.command_action_arg.argv.args) {
         if (!expand_action_to_argv(
-            term, "default", "Activate", &action_argc, &action_argv))
-        {
+                term, "default", "Activate", &action_argc, &action_argv)) {
             return false;
         }
 
@@ -456,8 +441,7 @@ notify_notify(struct terminal *term, struct notification *notif)
             xsnprintf(name, sizeof(name), "%zu", action_idx++);
 
             if (!expand_action_to_argv(
-                term, name, it->item, &action_argc, &action_argv))
-            {
+                    term, name, it->item, &action_argc, &action_argv)) {
                 for (size_t i = 0; i < action_argc; i++)
                     free(action_argv[i]);
                 free(action_argv);
@@ -467,23 +451,22 @@ notify_notify(struct terminal *term, struct notification *notif)
     }
 
     if (!spawn_expand_template(
-        &term->conf->desktop_notifications.command, 12,
-        (const char *[]){
-            "app-id", "window-title", "icon", "title", "body", "category",
-            "urgency", "muted", "sound-name", "expire-time", "replace-id",
-            "action-argument"},
-        (const char *[]){
-            app_id, term->window_title, icon_name_or_path, title,
-            body != NULL ? body : "",
-            notif->category != NULL ? notif->category : "", urgency_str,
-            notif->muted ? "true" : "false",
-            notif->sound_name != NULL ? notif->sound_name : "",
-            expire_time, replaces_id_str,
+            &term->conf->desktop_notifications.command, 12,
+            (const char *[]){
+                "app-id", "window-title", "icon", "title", "body", "category",
+                "urgency", "muted", "sound-name", "expire-time", "replace-id",
+                "action-argument"},
+            (const char *[]){
+                app_id, term->window_title, icon_name_or_path, title,
+                body != NULL ? body : "",
+                notif->category != NULL ? notif->category : "", urgency_str,
+                notif->muted ? "true" : "false",
+                notif->sound_name != NULL ? notif->sound_name : "",
+                expire_time, replaces_id_str,
 
-            /* Custom expansion below, since we need to expand to multiple arguments */
-            "${action-argument}"},
-        &argc, &argv))
-    {
+                /* Custom expansion below, since we need to expand to multiple arguments */
+                "${action-argument}"},
+            &argc, &argv)) {
         return false;
     }
 
@@ -509,7 +492,7 @@ notify_notify(struct terminal *term, struct notification *notif)
         /* Move remaining arguments to after the action arguments */
         memmove(&argv[i + action_argc],
                 &argv[i + 1],
-                (argc - i) * sizeof(argv[0]));  /* Include terminating NULL */
+                (argc - i) * sizeof(argv[0])); /* Include terminating NULL */
 
         free(argv[i]); /* Free xstrdup("${action-argument}"); */
 
@@ -520,7 +503,7 @@ notify_notify(struct terminal *term, struct notification *notif)
         }
 
         argc += action_argc;
-        argc--;  /* The ${action-argument} option has been removed */
+        argc--; /* The ${action-argument} option has been removed */
         break;
     }
 
@@ -598,9 +581,7 @@ notify_notify(struct terminal *term, struct notification *notif)
     return true;
 }
 
-void
-notify_close(struct terminal *term, const char *id)
-{
+void notify_close(struct terminal *term, const char *id) {
     xassert(id != NULL);
     LOG_DBG("close notification %s", id);
 
@@ -625,11 +606,13 @@ notify_close(struct terminal *term, const char *id)
         } else {
             LOG_DBG(
                 "trying to close notification \"%s\" "
-                "by running user defined command", id);
+                "by running user defined command",
+                id);
 
             if (notif->external_id == 0) {
                 LOG_WARN("cannot close notification \"%s\": "
-                         "no daemon assigned notification ID available", id);
+                         "no daemon assigned notification ID available",
+                         id);
                 return;
             }
 
@@ -640,11 +623,10 @@ notify_close(struct terminal *term, const char *id)
             xsnprintf(external_id, sizeof(external_id), "%u", notif->external_id);
 
             if (!spawn_expand_template(
-                &term->conf->desktop_notifications.close, 1,
-                (const char *[]){"id"},
-                (const char *[]){external_id},
-                &argc, &argv))
-            {
+                    &term->conf->desktop_notifications.close, 1,
+                    (const char *[]){"id"},
+                    (const char *[]){external_id},
+                    &argc, &argv)) {
                 return;
             }
 
@@ -669,8 +651,7 @@ notify_close(struct terminal *term, const char *id)
 
 static void
 add_icon(struct notification_icon *icon, const char *id, const char *symbolic_name,
-         const uint8_t *data, size_t data_sz)
-{
+         const uint8_t *data, size_t data_sz) {
     icon->id = xstrdup(id);
     icon->symbolic_name = symbolic_name != NULL ? xstrdup(symbolic_name) : NULL;
     icon->tmp_file_name = NULL;
@@ -697,10 +678,8 @@ add_icon(struct notification_icon *icon, const char *id, const char *symbolic_na
             icon->id, icon->symbolic_name, icon->tmp_file_name);
 }
 
-void
-notify_icon_add(struct terminal *term, const char *id,
-                const char *symbolic_name, const uint8_t *data, size_t data_sz)
-{
+void notify_icon_add(struct terminal *term, const char *id,
+                     const char *symbolic_name, const uint8_t *data, size_t data_sz) {
 #if defined(_DEBUG)
     for (size_t i = 0; i < ALEN(term->notification_icons); i++) {
         struct notification_icon *icon = &term->notification_icons[i];
@@ -730,9 +709,7 @@ notify_icon_add(struct terminal *term, const char *id,
         id, symbolic_name, data, data_sz);
 }
 
-void
-notify_icon_del(struct terminal *term, const char *id)
-{
+void notify_icon_del(struct terminal *term, const char *id) {
     for (size_t i = 0; i < ALEN(term->notification_icons); i++) {
         struct notification_icon *icon = &term->notification_icons[i];
 
@@ -745,9 +722,7 @@ notify_icon_del(struct terminal *term, const char *id)
     }
 }
 
-void
-notify_icon_free(struct notification_icon *icon)
-{
+void notify_icon_free(struct notification_icon *icon) {
     if (icon->tmp_file_name != NULL) {
         unlink(icon->tmp_file_name);
         if (icon->tmp_file_fd >= 0)

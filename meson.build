@@ -153,6 +153,22 @@ if utf8proc.found()
   add_project_arguments('-DFOOT_GRAPHEME_CLUSTERING=1', language: 'c')
 endif
 
+
+mimalloc_opt = get_option('mimalloc')
+
+
+if mimalloc_opt.enabled()
+  mi_dep = dependency('mimalloc', required: true, static: true)
+else
+  mi_dep = dependency('mimalloc', required: false, static: true)
+endif
+
+if mi_dep.found()
+  add_project_arguments('-DMIMALLOC=1', language: 'c')
+else
+  add_project_arguments('-DMIMALLOC=0', language: 'c')
+endif
+
 if pixman.version().version_compare('>=0.46.0')
   add_project_arguments('-DHAVE_PIXMAN_RGBA_16', language: 'c')
 endif
@@ -247,7 +263,7 @@ common = static_library(
   'macros.h',
   'xmalloc.c', 'xmalloc.h',
   'xsnprintf.c', 'xsnprintf.h',
-  dependencies: [utf8proc]
+  dependencies: [utf8proc,mi_dep]
 )
 
 misc = static_library(
@@ -256,7 +272,7 @@ misc = static_library(
   'macros.h',
   'misc.c', 'misc.h',
   'uri.c', 'uri.h',
-  dependencies: [utf8proc],
+  dependencies: [utf8proc,mi_dep],
   link_with: [common]
 )
 
@@ -274,7 +290,7 @@ vtlib = static_library(
   builtin_terminfo, srgb_funcs,
   wl_proto_src + wl_proto_headers,
   version,
-  dependencies: [libepoll, pixman, fcft, tllist, wayland_client, xkb, utf8proc],
+  dependencies: [libepoll, pixman, fcft, tllist, wayland_client, xkb, utf8proc,mi_dep],
   link_with: [common, misc],
 )
 
@@ -285,14 +301,14 @@ pgolib = static_library(
   'terminal.c', 'terminal.h',
   emoji_variation_sequences,
   wl_proto_src + wl_proto_headers,
-  dependencies: [libepoll, pixman, fcft, tllist, wayland_client, xkb, utf8proc],
+  dependencies: [libepoll, pixman, fcft, tllist, wayland_client, xkb, utf8proc,mi_dep],
   link_with: vtlib,
 )
 
 tokenize = static_library(
   'tokenizelib',
   'tokenize.c',
-  dependencies: [utf8proc],
+  dependencies: [utf8proc,mi_dep],
   link_with: [common],
 )
 
@@ -301,7 +317,7 @@ if get_option('b_pgo') == 'generate'
     'pgo',
     'pgo/pgo.c',
     wl_proto_src + wl_proto_headers,
-    dependencies: [math, threads, libepoll, pixman, wayland_client, xkb, utf8proc, fcft, tllist],
+    dependencies: [math, threads, libepoll, pixman, wayland_client, xkb, utf8proc, fcft, tllist,mi_dep],
     link_with: pgolib,
   )
 endif
@@ -337,7 +353,7 @@ executable(
   'xkbcommon-vmod.h',
   srgb_funcs, wl_proto_src + wl_proto_headers, version,
   dependencies: [math, threads, libepoll, pixman, wayland_client, wayland_cursor, xkb, fontconfig, utf8proc,
-                 tllist, fcft,vulkan,drm],
+                 tllist, fcft,vulkan,drm,mi_dep],
   link_with: pgolib,
   install: true)
 
@@ -348,7 +364,7 @@ executable(
   'macros.h',
   'util.h',
   version,
-  dependencies: [tllist, utf8proc],
+  dependencies: [tllist, utf8proc,mi_dep],
   link_with: common,
   install: true)
 
@@ -444,6 +460,7 @@ summary(
     'Default TERM': get_option('default-terminfo'),
     'Set TERMINFO': get_option('custom-terminfo-install-location') != '',
     'Build tests': get_option('tests'),
+    'mimalloc': mi_dep.found() ? 'yes' : 'no (system malloc)',
   },
   bool_yn: true
 )

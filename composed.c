@@ -5,10 +5,10 @@
 
 #include "debug.h"
 #include "terminal.h"
+#include "xmalloc.h"
 
 uint32_t
-composed_key_from_chars(const uint32_t chars[], size_t count)
-{
+composed_key_from_chars(const uint32_t chars[], size_t count) {
     if (count == 0)
         return 0;
 
@@ -20,8 +20,7 @@ composed_key_from_chars(const uint32_t chars[], size_t count)
 }
 
 uint32_t
-composed_key_from_key(uint32_t prev_key, uint32_t next_char)
-{
+composed_key_from_key(uint32_t prev_key, uint32_t next_char) {
     unsigned bits = 32 - __builtin_clz(CELL_COMB_CHARS_HI - CELL_COMB_CHARS_LO);
 
     /* Rotate old key 8 bits */
@@ -38,8 +37,7 @@ composed_key_from_key(uint32_t prev_key, uint32_t next_char)
     return new_key;
 }
 
-UNITTEST
-{
+UNITTEST {
     const char32_t chars[] = U"abcdef";
 
     uint32_t k1 = composed_key_from_key(chars[0], chars[1]);
@@ -52,8 +50,7 @@ UNITTEST
 }
 
 const struct composed *
-composed_lookup(struct composed *root, uint32_t key)
-{
+composed_lookup(struct composed *root, uint32_t key) {
     struct composed *node = root;
 
     while (node != NULL) {
@@ -69,8 +66,7 @@ composed_lookup(struct composed *root, uint32_t key)
 const struct composed *
 composed_lookup_without_collision(struct composed *root, uint32_t *key,
                                   const char32_t *prefix_text, size_t prefix_len,
-                                  char32_t wc, int forced_width)
-{
+                                  char32_t wc, int forced_width) {
     while (true) {
         const struct composed *cc = composed_lookup(root, *key);
         if (cc == NULL)
@@ -101,9 +97,7 @@ composed_lookup_without_collision(struct composed *root, uint32_t *key,
     return NULL;
 }
 
-void
-composed_insert(struct composed **root, struct composed *node)
-{
+void composed_insert(struct composed **root, struct composed *node) {
     node->left = node->right = NULL;
 
     if (*root == NULL) {
@@ -135,15 +129,13 @@ composed_insert(struct composed **root, struct composed *node)
     }
 }
 
-void
-composed_free(struct composed *root)
-{
+void composed_free(struct composed *root) {
     if (root == NULL)
         return;
 
     composed_free(root->left);
     composed_free(root->right);
 
-    free(root->chars);
-    free(root);
+    xfree(root->chars);
+    xfree(root);
 }

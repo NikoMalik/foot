@@ -389,7 +389,7 @@ void vk_chain_free(struct vk_buffer_chain *chain) {
 
     vk_purge(chain);
 
-    if (tll_length(chain->bufs) > 0)
+    if (unlikely(tll_length(chain->bufs) > 0))
         BUG("chain=%p: there are buffers remaining; "
             "is there a missing call to vk_unref()?",
             (void *)chain);
@@ -500,7 +500,7 @@ vk_buffer_create(struct vk_buffer_chain *chain, int width, int height, bool with
                                               VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
                                               mem_reqs.memoryTypeBits);
 
-    if (mem_type_index == -1) {
+    if (unlikely(mem_type_index == -1)) {
         LOG_ERR("Could not find suitable memory type");
         goto error;
     }

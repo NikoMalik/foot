@@ -25,8 +25,7 @@ struct reaper {
 static bool fdm_reap(struct fdm *fdm, int signo, void *data);
 
 struct reaper *
-reaper_init(struct fdm *fdm)
-{
+reaper_init(struct fdm *fdm) {
     struct reaper *reaper = malloc(sizeof(*reaper));
     if (unlikely(reaper == NULL)) {
         LOG_ERRNO("malloc() failed");
@@ -49,9 +48,7 @@ err:
     return NULL;
 }
 
-void
-reaper_destroy(struct reaper *reaper)
-{
+void reaper_destroy(struct reaper *reaper) {
     if (reaper == NULL)
         return;
 
@@ -60,18 +57,14 @@ reaper_destroy(struct reaper *reaper)
     free(reaper);
 }
 
-void
-reaper_add(struct reaper *reaper, pid_t pid, reaper_cb cb, void *cb_data)
-{
+void reaper_add(struct reaper *reaper, pid_t pid, reaper_cb cb, void *cb_data) {
     LOG_DBG("adding pid=%d", pid);
     tll_push_back(
         reaper->children,
         ((struct child){.pid = pid, .cb = cb, .cb_data = cb_data}));
 }
 
-void
-reaper_del(struct reaper *reaper, pid_t pid)
-{
+void reaper_del(struct reaper *reaper, pid_t pid) {
     tll_foreach(reaper->children, it) {
         if (it->item.pid == pid) {
             tll_remove(reaper->children, it);
@@ -81,8 +74,7 @@ reaper_del(struct reaper *reaper, pid_t pid)
 }
 
 static bool
-fdm_reap(struct fdm *fdm, int signo, void *data)
-{
+fdm_reap(struct fdm *fdm, int signo, void *data) {
     struct reaper *reaper = data;
 
     while (true) {

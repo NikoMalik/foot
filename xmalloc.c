@@ -6,52 +6,93 @@
 
 #if defined(MIMALLOC)
 #include <mimalloc.h>
+#define XMALLOC_PREFIX mi_
+#else
+#define XMALLOC_PREFIX
 #endif
 
 static inline void *
-check_alloc(void *alloc) {
-    if (unlikely(alloc == NULL)) {
+check_alloc(void *ptr) {
+    if (unlikely(ptr == NULL)) {
         FATAL_ERROR(__func__, ENOMEM);
     }
-    return alloc;
+    return ptr;
 }
 
-inline void *
+void *
 xmalloc(size_t size) {
-    if (unlikely(size == 0)) {
+    if (unlikely(size == 0))
+        size = 1;
+#if defined(MIMALLOC)
+    return check_alloc(mi_malloc(size));
+#else
+    return check_alloc(malloc(size));
+#endif
+}
+
+void *
+xcalloc(size_t nmemb, size_t size) {
+    if (unlikely(nmemb == 0 || size == 0)) {
+        nmemb = 1;
         size = 1;
     }
-    return check_alloc(malloc(size));
+#if defined(MIMALLOC)
+    return check_alloc(mi_calloc(nmemb, size));
+#else
+    return check_alloc(calloc(nmemb, size));
+#endif
 }
 
-inline void *
-xcalloc(size_t nmemb, size_t size) {
-    xassert(size != 0);
-    return check_alloc(calloc(likely(nmemb) ? nmemb : 1, size));
-}
-
-inline void *
+void *
 xrealloc(void *ptr, size_t size) {
-    xassert(size != 0);
-    void *alloc = realloc(ptr, size);
-    return check_alloc(alloc);
+    if (unlikely(size == 0))
+        size = 1;
+#if defined(MIMALLOC)
+    return check_alloc(mi_realloc(ptr, size));
+#else
+    return check_alloc(realloc(ptr, size));
+#endif
 }
 
 inline void *
 xreallocarray(void *ptr, size_t n, size_t size) {
-    xassert(n != 0 && size != 0);
-    void *alloc = reallocarray(ptr, n, size);
-    return check_alloc(alloc);
+    if (unlikely(n == 0 || size == 0)) {
+        n = 1;
+        size = 1;
+    }
+#if defined(MIMALLOC)
+    return check_alloc(mi_reallocarray(ptr, n, size));
+#else
+    return check_alloc(reallocarray(ptr, n, size));
+#endif
 }
 
-inline char *
-xstrdup(const char *str) {
-    return check_alloc(strdup(str));
+inline void xfree(void *ptr) {
+    if (unlikely(ptr == NULL))
+        return;
+#if defined(MIMALLOC)
+    mi_free(ptr);
+#else
+    free(ptr);
+#endif
 }
 
-inline char *
-xstrndup(const char *str, size_t n) {
-    return check_alloc(strndup(str, n));
+char *
+xstrdup(const char *s) {
+#if defined(MIMALLOC)
+    return check_alloc(mi_strdup(s));
+#else
+    return check_alloc(strdup(s));
+#endif
+}
+
+char *
+xstrndup(const char *s, size_t n) {
+#if defined(MIMALLOC)
+    return check_alloc(mi_strndup(s, n));
+#else
+    return check_alloc(strndup(s, n));
+#endif
 }
 
 inline char32_t *

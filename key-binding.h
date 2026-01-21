@@ -1,4 +1,5 @@
 #pragma once
+#include "xmalloc.h"
 
 #include <stdint.h>
 

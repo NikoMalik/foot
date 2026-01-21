@@ -1,10 +1,9 @@
 #include "misc.h"
 #include "char32.h"
 #include <stdlib.h>
+#include "xmalloc.h"
 
-bool
-isword(char32_t wc, bool spaces_only, const char32_t *delimiters)
-{
+bool isword(char32_t wc, bool spaces_only, const char32_t *delimiters) {
     if (spaces_only)
         return isc32graph(wc);
 
@@ -14,10 +13,8 @@ isword(char32_t wc, bool spaces_only, const char32_t *delimiters)
     return isc32graph(wc);
 }
 
-void
-timespec_add(const struct timespec *a, const struct timespec *b,
-             struct timespec *res)
-{
+void timespec_add(const struct timespec *a, const struct timespec *b,
+                  struct timespec *res) {
     const long one_sec_in_ns = 1000000000;
 
     res->tv_sec = a->tv_sec + b->tv_sec;
@@ -29,10 +26,8 @@ timespec_add(const struct timespec *a, const struct timespec *b,
     }
 }
 
-void
-timespec_sub(const struct timespec *a, const struct timespec *b,
-             struct timespec *res)
-{
+void timespec_sub(const struct timespec *a, const struct timespec *b,
+                  struct timespec *res) {
     const long one_sec_in_ns = 1000000000;
 
     res->tv_sec = a->tv_sec - b->tv_sec;
@@ -44,20 +39,18 @@ timespec_sub(const struct timespec *a, const struct timespec *b,
     }
 }
 
-bool
-is_valid_utf8_and_printable(const char *value)
-{
+bool is_valid_utf8_and_printable(const char *value) {
     char32_t *wide = ambstoc32(value);
     if (wide == NULL)
         return false;
 
     for (const char32_t *c = wide; *c != U'\0'; c++) {
         if (!isc32print(*c)) {
-            free(wide);
+            xfree(wide);
             return false;
         }
     }
 
-    free(wide);
+    xfree(wide);
     return true;
 }

@@ -37,20 +37,17 @@ static volatile sig_atomic_t aborted = 0;
 static volatile sig_atomic_t sigusr = 0;
 
 static void
-sigint_handler(int signo)
-{
+sigint_handler(int signo) {
     aborted = 1;
 }
 
 static void
-sigusr_handler(int signo)
-{
+sigusr_handler(int signo) {
     sigusr = signo;
 }
 
 static ssize_t
-sendall(int sock, const void *_buf, size_t len)
-{
+sendall(int sock, const void *_buf, size_t len) {
     const uint8_t *buf = _buf;
     size_t left = len;
 
@@ -70,8 +67,7 @@ sendall(int sock, const void *_buf, size_t len)
 }
 
 static void
-print_usage(const char *prog_name)
-{
+print_usage(const char *prog_name) {
     static const char options[] =
         "\nOptions:\n"
         "  -t,--term=TERM                           value to set the environment variable TERM to (" FOOT_DEFAULT_TERM ")\n"
@@ -100,8 +96,7 @@ print_usage(const char *prog_name)
 }
 
 static bool NOINLINE
-push_string(string_list_t *string_list, const char *s, uint64_t *total_len)
-{
+push_string(string_list_t *string_list, const char *s, uint64_t *total_len) {
     size_t len = strlen(s) + 1;
     if (len >= 1 << (8 * sizeof(uint16_t))) {
         LOG_ERR("string length overflow");
@@ -114,23 +109,20 @@ push_string(string_list_t *string_list, const char *s, uint64_t *total_len)
     return true;
 }
 
-static void
-free_string_list(string_list_t *string_list)
-{
+inline static void
+free_string_list(string_list_t *string_list) {
     tll_foreach(*string_list, it) {
-        free(it->item.str);
+        xfree(it->item.str);
         tll_remove(*string_list, it);
     }
 }
 
 static bool
-send_string_list(int fd, const string_list_t *string_list)
-{
+send_string_list(int fd, const string_list_t *string_list) {
     tll_foreach(*string_list, it) {
         const struct client_string s = {it->item.len};
         if (sendall(fd, &s, sizeof(s)) < 0 ||
-            sendall(fd, it->item.str, s.len) < 0)
-        {
+            sendall(fd, it->item.str, s.len) < 0) {
             LOG_ERRNO("failed to send setup packet to server");
             return false;
         }
@@ -143,9 +135,7 @@ enum {
     TOPLEVEL_TAG_OPTION = CHAR_MAX + 1,
 };
 
-int
-main(int argc, char *const *argv)
-{
+int main(int argc, char *const *argv) {
     /* Custom exit code, to enable users to differentiate between foot
      * itself failing, and the client application failing */
     static const int foot_exit_failure = -36;
@@ -153,27 +143,27 @@ main(int argc, char *const *argv)
 
     const char *const prog_name = argc > 0 ? argv[0] : "<nullptr>";
 
-    static const struct option longopts[] =  {
-        {"term",               required_argument, NULL, 't'},
-        {"title",              required_argument, NULL, 'T'},
-        {"app-id",             required_argument, NULL, 'a'},
-        {"toplevel-tag",       required_argument, NULL, TOPLEVEL_TAG_OPTION},
+    static const struct option longopts[] = {
+        {"term", required_argument, NULL, 't'},
+        {"title", required_argument, NULL, 'T'},
+        {"app-id", required_argument, NULL, 'a'},
+        {"toplevel-tag", required_argument, NULL, TOPLEVEL_TAG_OPTION},
         {"window-size-pixels", required_argument, NULL, 'w'},
-        {"window-size-chars",  required_argument, NULL, 'W'},
-        {"maximized",          no_argument,       NULL, 'm'},
-        {"fullscreen",         no_argument,       NULL, 'F'},
-        {"login-shell",        no_argument,       NULL, 'L'},
-        {"working-directory",  required_argument, NULL, 'D'},
-        {"server-socket",      required_argument, NULL, 's'},
-        {"hold",               no_argument,       NULL, 'H'},
-        {"no-wait",            no_argument,       NULL, 'N'},
-        {"override",           required_argument, NULL, 'o'},
-        {"client-environment", no_argument,       NULL, 'E'},
-        {"log-level",          required_argument, NULL, 'd'},
-        {"log-colorize",       optional_argument, NULL, 'l'},
-        {"version",            no_argument,       NULL, 'v'},
-        {"help",               no_argument,       NULL, 'h'},
-        {NULL,                 no_argument,       NULL,   0},
+        {"window-size-chars", required_argument, NULL, 'W'},
+        {"maximized", no_argument, NULL, 'm'},
+        {"fullscreen", no_argument, NULL, 'F'},
+        {"login-shell", no_argument, NULL, 'L'},
+        {"working-directory", required_argument, NULL, 'D'},
+        {"server-socket", required_argument, NULL, 's'},
+        {"hold", no_argument, NULL, 'H'},
+        {"no-wait", no_argument, NULL, 'N'},
+        {"override", required_argument, NULL, 'o'},
+        {"client-environment", no_argument, NULL, 'E'},
+        {"log-level", required_argument, NULL, 'd'},
+        {"log-colorize", optional_argument, NULL, 'l'},
+        {"version", no_argument, NULL, 'v'},
+        {"help", no_argument, NULL, 'h'},
+        {NULL, no_argument, NULL, 0},
     };
 
     const char *custom_cwd = NULL;
@@ -424,8 +414,7 @@ main(int argc, char *const *argv)
 
         if (resolved_path_cwd != NULL &&
             resolved_path_pwd != NULL &&
-            streq(resolved_path_cwd, resolved_path_pwd))
-        {
+            streq(resolved_path_cwd, resolved_path_pwd)) {
             /*
              * The resolved path of $PWD matches the resolved path of
              * the *actual* working directory - use $PWD.
@@ -435,8 +424,8 @@ main(int argc, char *const *argv)
             cwd = pwd;
         }
 
-        free(resolved_path_cwd);
-        free(resolved_path_pwd);
+        xfree(resolved_path_cwd);
+        xfree(resolved_path_pwd);
     }
 
     if (client_environment) {
@@ -485,8 +474,7 @@ main(int argc, char *const *argv)
         token_len >= 1 << (8 * sizeof(data.token_len)) ||
         override_count > (size_t)(unsigned int)data.override_count ||
         argc > (int)(unsigned int)data.argc ||
-        env_count > (size_t)(unsigned int)data.env_count)
-    {
+        env_count > (size_t)(unsigned int)data.env_count) {
         LOG_ERR("size overflow");
         goto err;
     }
@@ -494,16 +482,14 @@ main(int argc, char *const *argv)
     /* Send everything except argv[] */
     if (sendall(fd, &(uint32_t){total_len}, sizeof(uint32_t)) < 0 ||
         sendall(fd, &data, sizeof(data)) < 0 ||
-        sendall(fd, cwd, cwd_len) < 0)
-    {
+        sendall(fd, cwd, cwd_len) < 0) {
         LOG_ERRNO("failed to send setup packet to server");
         goto err;
     }
 
     /* Send XDGA token, if we have one */
     if (xdga_token) {
-        if (sendall(fd, token, token_len) != token_len)
-        {
+        if (sendall(fd, token, token_len) != token_len) {
             LOG_ERRNO("failed to send xdg activation token to server");
             goto err;
         }
@@ -516,8 +502,7 @@ main(int argc, char *const *argv)
     /* Send argv[] */
     for (size_t i = 0; i < argc; i++) {
         if (sendall(fd, &cargv[i], sizeof(cargv[i])) < 0 ||
-            sendall(fd, argv[i], cargv[i].len) < 0)
-        {
+            sendall(fd, argv[i], cargv[i].len) < 0) {
             LOG_ERRNO("failed to send setup packet (argv) to server");
             goto err;
         }
@@ -535,8 +520,7 @@ main(int argc, char *const *argv)
     if (sigaction(SIGINT, &sa_int, NULL) < 0 ||
         sigaction(SIGTERM, &sa_int, NULL) < 0 ||
         sigaction(SIGUSR1, &sa_usr, NULL) < 0 ||
-        sigaction(SIGUSR2, &sa_usr, NULL) < 0)
-    {
+        sigaction(SIGUSR2, &sa_usr, NULL) < 0) {
         LOG_ERRNO("failed to register signal handlers");
         goto err;
     }
@@ -595,8 +579,8 @@ main(int argc, char *const *argv)
 err:
     free_string_list(&envp);
     free_string_list(&overrides);
-    free(cargv);
-    free(_cwd);
+    xfree(cargv);
+    xfree(_cwd);
     if (fd != -1)
         close(fd);
     log_deinit();

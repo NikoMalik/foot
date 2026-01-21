@@ -13,6 +13,7 @@
 #define ALLOCATOR_MIMALLOC 1
 #define ALLOCATOR_JEMALLOC 2
 
+void xfree(void *ptr);
 void *xmalloc(size_t size) XMALLOC;
 void *xcalloc(size_t nmemb, size_t size) XMALLOC;
 void *xrealloc(void *ptr, size_t size);

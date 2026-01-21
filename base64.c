@@ -10,6 +10,7 @@
 #define LOG_ENABLE_DBG 0
 #include "log.h"
 #include "debug.h"
+#include "xmalloc.h"
 
 enum {
     P = 1 << 6, // Padding byte (=)
@@ -17,40 +18,37 @@ enum {
 };
 
 static const uint8_t reverse_lookup[256] = {
-     I,  I,  I,  I,  I,  I,  I,  I,  I,  I,  I,  I,  I,  I,  I,  I,
-     I,  I,  I,  I,  I,  I,  I,  I,  I,  I,  I,  I,  I,  I,  I,  I,
-     I,  I,  I,  I,  I,  I,  I,  I,  I,  I,  I, 62,  I,  I,  I, 63,
-    52, 53, 54, 55, 56, 57, 58, 59, 60, 61,  I,  I,  I,  P,  I,  I,
-     I,  0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14,
-    15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25,  I,  I,  I,  I,  I,
-     I, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40,
-    41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51,  I,  I,  I,  I,  I,
-     I,  I,  I,  I,  I,  I,  I,  I,  I,  I,  I,  I,  I,  I,  I,  I,
-     I,  I,  I,  I,  I,  I,  I,  I,  I,  I,  I,  I,  I,  I,  I,  I,
-     I,  I,  I,  I,  I,  I,  I,  I,  I,  I,  I,  I,  I,  I,  I,  I,
-     I,  I,  I,  I,  I,  I,  I,  I,  I,  I,  I,  I,  I,  I,  I,  I,
-     I,  I,  I,  I,  I,  I,  I,  I,  I,  I,  I,  I,  I,  I,  I,  I,
-     I,  I,  I,  I,  I,  I,  I,  I,  I,  I,  I,  I,  I,  I,  I,  I,
-     I,  I,  I,  I,  I,  I,  I,  I,  I,  I,  I,  I,  I,  I,  I,  I,
-     I,  I,  I,  I,  I,  I,  I,  I,  I,  I,  I,  I,  I,  I,  I,  I
-};
+    I, I, I, I, I, I, I, I, I, I, I, I, I, I, I, I,
+    I, I, I, I, I, I, I, I, I, I, I, I, I, I, I, I,
+    I, I, I, I, I, I, I, I, I, I, I, 62, I, I, I, 63,
+    52, 53, 54, 55, 56, 57, 58, 59, 60, 61, I, I, I, P, I, I,
+    I, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14,
+    15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, I, I, I, I, I,
+    I, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40,
+    41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, I, I, I, I, I,
+    I, I, I, I, I, I, I, I, I, I, I, I, I, I, I, I,
+    I, I, I, I, I, I, I, I, I, I, I, I, I, I, I, I,
+    I, I, I, I, I, I, I, I, I, I, I, I, I, I, I, I,
+    I, I, I, I, I, I, I, I, I, I, I, I, I, I, I, I,
+    I, I, I, I, I, I, I, I, I, I, I, I, I, I, I, I,
+    I, I, I, I, I, I, I, I, I, I, I, I, I, I, I, I,
+    I, I, I, I, I, I, I, I, I, I, I, I, I, I, I, I,
+    I, I, I, I, I, I, I, I, I, I, I, I, I, I, I, I};
 
 static const char lookup[64] = {
     "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
     "abcdefghijklmnopqrstuvwxyz"
-    "0123456789+/"
-};
+    "0123456789+/"};
 
 char *
-base64_decode(const char *s, size_t *size)
-{
+base64_decode(const char *s, size_t *size) {
     const size_t len = strlen(s);
     if (unlikely(len % 4 != 0)) {
         errno = EINVAL;
         return NULL;
     }
 
-    char *ret = malloc(len / 4 * 3 + 1);
+    char *ret = xmalloc(len / 4 * 3 + 1);
     if (unlikely(ret == NULL))
         return NULL;
 
@@ -84,8 +82,8 @@ base64_decode(const char *s, size_t *size)
 
         uint32_t v = a << 18 | b << 12 | c << 6 | d << 0;
         char x = (v >> 16) & 0xff;
-        char y = (v >>  8) & 0xff;
-        char z = (v >>  0) & 0xff;
+        char y = (v >> 8) & 0xff;
+        char z = (v >> 0) & 0xff;
 
         LOG_DBG("%c%c%c", x, y, z);
         ret[o + 0] = x;
@@ -97,19 +95,18 @@ base64_decode(const char *s, size_t *size)
     return ret;
 
 invalid:
-    free(ret);
+    xfree(ret);
     errno = EINVAL;
     return NULL;
 }
 
 char *
-base64_encode(const uint8_t *data, size_t size)
-{
+base64_encode(const uint8_t *data, size_t size) {
     xassert(size % 3 == 0);
     if (unlikely(size % 3 != 0))
         return NULL;
 
-    char *ret = malloc(size / 3 * 4 + 1);
+    char *ret = xmalloc(size / 3 * 4 + 1);
     if (unlikely(ret == NULL))
         return NULL;
 
@@ -122,8 +119,8 @@ base64_encode(const uint8_t *data, size_t size)
 
         unsigned a = (v >> 18) & 0x3f;
         unsigned b = (v >> 12) & 0x3f;
-        unsigned c = (v >>  6) & 0x3f;
-        unsigned d = (v >>  0) & 0x3f;
+        unsigned c = (v >> 6) & 0x3f;
+        unsigned d = (v >> 0) & 0x3f;
 
         char c0 = lookup[a];
         char c1 = lookup[b];
@@ -142,9 +139,7 @@ base64_encode(const uint8_t *data, size_t size)
     return ret;
 }
 
-void
-base64_encode_final(const uint8_t *data, size_t size, char result[4])
-{
+void base64_encode_final(const uint8_t *data, size_t size, char result[4]) {
     xassert(size > 0);
     xassert(size < 3);
 
@@ -156,7 +151,7 @@ base64_encode_final(const uint8_t *data, size_t size, char result[4])
 
     unsigned a = (v >> 18) & 0x3f;
     unsigned b = (v >> 12) & 0x3f;
-    unsigned c = (v >>  6) & 0x3f;
+    unsigned c = (v >> 6) & 0x3f;
 
     char c0 = lookup[a];
     char c1 = lookup[b];

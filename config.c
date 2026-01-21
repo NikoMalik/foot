@@ -36,15 +36,15 @@ static const uint32_t default_background = 0x242424;
 static const size_t min_csd_border_width = 5;
 
 #define cube6(r, g) \
-    r|g|0x00, r|g|0x5f, r|g|0x87, r|g|0xaf, r|g|0xd7, r|g|0xff
+    r | g | 0x00, r | g | 0x5f, r | g | 0x87, r | g | 0xaf, r | g | 0xd7, r | g | 0xff
 
-#define cube36(r) \
-    cube6(r, 0x0000), \
-    cube6(r, 0x5f00), \
-    cube6(r, 0x8700), \
-    cube6(r, 0xaf00), \
-    cube6(r, 0xd700), \
-    cube6(r, 0xff00)
+#define cube36(r)         \
+    cube6(r, 0x0000),     \
+        cube6(r, 0x5f00), \
+        cube6(r, 0x8700), \
+        cube6(r, 0xaf00), \
+        cube6(r, 0xd700), \
+        cube6(r, 0xff00)
 
 static const uint32_t default_color_table[256] = {
     // Regular
@@ -83,8 +83,7 @@ static const uint32_t default_color_table[256] = {
     0x585858, 0x626262, 0x6c6c6c, 0x767676,
     0x808080, 0x8a8a8a, 0x949494, 0x9e9e9e,
     0xa8a8a8, 0xb2b2b2, 0xbcbcbc, 0xc6c6c6,
-    0xd0d0d0, 0xdadada, 0xe4e4e4, 0xeeeeee
-};
+    0xd0d0d0, 0xdadada, 0xe4e4e4, 0xeeeeee};
 
 /* VT330/VT340 Programmer Reference Manual  - Table 2-3 VT340 Default Color Map */
 static const uint32_t default_sixel_colors[16] = {
@@ -232,9 +231,8 @@ static const enum user_notification_kind log_class_to_notify_kind[LOG_CLASS_COUN
 };
 
 static void NOINLINE VPRINTF(5)
-log_and_notify_va(struct config *conf, enum log_class log_class,
-                  const char *file, int lineno, const char *fmt, va_list va)
-{
+    log_and_notify_va(struct config *conf, enum log_class log_class,
+                      const char *file, int lineno, const char *fmt, va_list va) {
     xassert(log_class < ALEN(log_class_to_notify_kind));
     enum user_notification_kind kind = log_class_to_notify_kind[log_class];
 
@@ -249,9 +247,8 @@ log_and_notify_va(struct config *conf, enum log_class log_class,
 }
 
 static void NOINLINE PRINTF(5)
-log_and_notify(struct config *conf, enum log_class log_class,
-               const char *file, int lineno, const char *fmt, ...)
-{
+    log_and_notify(struct config *conf, enum log_class log_class,
+                   const char *file, int lineno, const char *fmt, ...) {
     va_list va;
     va_start(va, fmt);
     log_and_notify_va(conf, log_class, file, lineno, fmt, va);
@@ -259,9 +256,8 @@ log_and_notify(struct config *conf, enum log_class log_class,
 }
 
 static void NOINLINE PRINTF(5)
-log_contextual(struct context *ctx, enum log_class log_class,
-               const char *file, int lineno, const char *fmt, ...)
-{
+    log_contextual(struct context *ctx, enum log_class log_class,
+                   const char *file, int lineno, const char *fmt, ...) {
     va_list va;
     va_start(va, fmt);
     char *formatted_msg = xvasprintf(fmt, va);
@@ -286,26 +282,23 @@ log_contextual(struct context *ctx, enum log_class log_class,
         print_section_suffix ? ":" : "", ctx->section_suffix,
         print_dot ? "." : "", ctx->key, print_colon ? ": " : "",
         ctx->value, formatted_msg);
-    free(formatted_msg);
+    xfree(formatted_msg);
 }
 
-
 static void NOINLINE VPRINTF(4)
-log_and_notify_errno_va(struct config *conf, const char *file, int lineno,
-                     const char *fmt, va_list va)
-{
+    log_and_notify_errno_va(struct config *conf, const char *file, int lineno,
+                            const char *fmt, va_list va) {
     int errno_copy = errno;
     char *formatted_msg = xvasprintf(fmt, va);
     log_and_notify(
         conf, LOG_CLASS_ERROR, file, lineno,
         "%s: %s", formatted_msg, strerror(errno_copy));
-    free(formatted_msg);
+    xfree(formatted_msg);
 }
 
 static void NOINLINE PRINTF(4)
-log_and_notify_errno(struct config *conf, const char *file, int lineno,
-                     const char *fmt, ...)
-{
+    log_and_notify_errno(struct config *conf, const char *file, int lineno,
+                         const char *fmt, ...) {
     va_list va;
     va_start(va, fmt);
     log_and_notify_errno_va(conf, file, lineno, fmt, va);
@@ -313,9 +306,8 @@ log_and_notify_errno(struct config *conf, const char *file, int lineno,
 }
 
 static void NOINLINE PRINTF(4)
-log_contextual_errno(struct context *ctx, const char *file, int lineno,
-                     const char *fmt, ...)
-{
+    log_contextual_errno(struct context *ctx, const char *file, int lineno,
+                         const char *fmt, ...) {
     va_list va;
     va_start(va, fmt);
     char *formatted_msg = xvasprintf(fmt, va);
@@ -335,7 +327,7 @@ log_contextual_errno(struct context *ctx, const char *file, int lineno,
         ctx->path, ctx->lineno, ctx->section, print_dot ? "." : "",
         ctx->key, print_colon ? ": " : "", ctx->value, formatted_msg);
 
-    free(formatted_msg);
+    xfree(formatted_msg);
 }
 
 #define LOG_CONTEXTUAL_ERR(...) \
@@ -357,8 +349,7 @@ log_contextual_errno(struct context *ctx, const char *file, int lineno,
     log_and_notify_errno(conf, __FILE__, __LINE__, __VA_ARGS__)
 
 static char *
-get_shell(void)
-{
+get_shell(void) {
     const char *shell = getenv("SHELL");
 
     if (shell == NULL) {
@@ -375,13 +366,12 @@ get_shell(void)
 }
 
 struct config_file {
-    char *path;       /* Full, absolute, path */
-    int fd;           /* FD of file, O_RDONLY */
+    char *path; /* Full, absolute, path */
+    int fd;     /* FD of file, O_RDONLY */
 };
 
 static struct config_file
-open_config(void)
-{
+open_config(void) {
     char *path = NULL;
     struct config_file ret = {.path = NULL, .fd = -1};
 
@@ -401,24 +391,23 @@ open_config(void)
         int fd = open(path, O_RDONLY | O_CLOEXEC);
 
         if (fd >= 0) {
-            ret = (struct config_file) {.path = path, .fd = fd};
+            ret = (struct config_file){.path = path, .fd = fd};
             path = NULL;
             goto done;
         }
     }
 
     xdg_config_dirs_copy = xdg_config_dirs != NULL && xdg_config_dirs[0] != '\0'
-        ? strdup(xdg_config_dirs)
-        : strdup("/etc/xdg");
+                               ? strdup(xdg_config_dirs)
+                               : strdup("/etc/xdg");
 
     if (xdg_config_dirs_copy == NULL || xdg_config_dirs_copy[0] == '\0')
         goto done;
 
     for (const char *conf_dir = strtok(xdg_config_dirs_copy, ":");
          conf_dir != NULL;
-         conf_dir = strtok(NULL, ":"))
-    {
-        free(path);
+         conf_dir = strtok(NULL, ":")) {
+        xfree(path);
         path = xstrjoin(conf_dir, "/foot/foot.ini");
 
         LOG_DBG("checking for %s", path);
@@ -431,22 +420,20 @@ open_config(void)
     }
 
 done:
-    free(xdg_config_dirs_copy);
-    free(path);
+    xfree(xdg_config_dirs_copy);
+    xfree(path);
     return ret;
 }
 
 static bool
-str_has_prefix(const char *str, const char *prefix)
-{
+str_has_prefix(const char *str, const char *prefix) {
     return strncmp(str, prefix, strlen(prefix)) == 0;
 }
 
 static bool NOINLINE
-value_to_bool(struct context *ctx, bool *res)
-{
+value_to_bool(struct context *ctx, bool *res) {
     static const char *const yes[] = {"on", "true", "yes", "1"};
-    static const char *const  no[] = {"off", "false", "no", "0"};
+    static const char *const no[] = {"off", "false", "no", "0"};
 
     for (size_t i = 0; i < ALEN(yes); i++) {
         if (strcasecmp(ctx->value, yes[i]) == 0) {
@@ -466,10 +453,8 @@ value_to_bool(struct context *ctx, bool *res)
     return false;
 }
 
-
 static bool NOINLINE
-str_to_ulong(const char *s, int base, unsigned long *res)
-{
+str_to_ulong(const char *s, int base, unsigned long *res) {
     if (s == NULL)
         return false;
 
@@ -485,8 +470,7 @@ str_to_ulong(const char *s, int base, unsigned long *res)
 }
 
 static bool NOINLINE
-str_to_uint32(const char *s, int base, uint32_t *res)
-{
+str_to_uint32(const char *s, int base, uint32_t *res) {
     unsigned long v;
     bool ret = str_to_ulong(s, base, &v);
     if (v > UINT32_MAX)
@@ -496,8 +480,7 @@ str_to_uint32(const char *s, int base, uint32_t *res)
 }
 
 static bool NOINLINE
-str_to_uint16(const char *s, int base, uint16_t *res)
-{
+str_to_uint16(const char *s, int base, uint16_t *res) {
     unsigned long v;
     bool ret = str_to_ulong(s, base, &v);
     if (v > UINT16_MAX)
@@ -507,8 +490,7 @@ str_to_uint16(const char *s, int base, uint16_t *res)
 }
 
 static bool NOINLINE
-value_to_uint16(struct context *ctx, int base, uint16_t *res)
-{
+value_to_uint16(struct context *ctx, int base, uint16_t *res) {
     if (!str_to_uint16(ctx->value, base, res)) {
         LOG_CONTEXTUAL_ERR(
             "invalid integer value, or outside range 0-%u", UINT16_MAX);
@@ -518,9 +500,8 @@ value_to_uint16(struct context *ctx, int base, uint16_t *res)
 }
 
 static bool NOINLINE
-value_to_uint32(struct context *ctx, int base, uint32_t *res)
-{
-    if (!str_to_uint32(ctx->value, base, res)){
+value_to_uint32(struct context *ctx, int base, uint32_t *res) {
+    if (!str_to_uint32(ctx->value, base, res)) {
         LOG_CONTEXTUAL_ERR(
             "invalid integer value, or outside range 0-%u", UINT32_MAX);
         return false;
@@ -529,8 +510,7 @@ value_to_uint32(struct context *ctx, int base, uint32_t *res)
 }
 
 static bool NOINLINE
-value_to_dimensions(struct context *ctx, uint32_t *x, uint32_t *y)
-{
+value_to_dimensions(struct context *ctx, uint32_t *x, uint32_t *y) {
     if (sscanf(ctx->value, "%ux%u", x, y) != 2) {
         LOG_CONTEXTUAL_ERR("invalid dimensions (must be in the form AxB)");
         return false;
@@ -540,8 +520,7 @@ value_to_dimensions(struct context *ctx, uint32_t *x, uint32_t *y)
 }
 
 static bool NOINLINE
-value_to_float(struct context *ctx, float *res)
-{
+value_to_float(struct context *ctx, float *res) {
     const char *s = ctx->value;
 
     if (s == NULL)
@@ -561,8 +540,7 @@ value_to_float(struct context *ctx, float *res)
 }
 
 static bool NOINLINE
-value_to_str(struct context *ctx, char **res)
-{
+value_to_str(struct context *ctx, char **res) {
     char *copy = xstrdup(ctx->value);
     char *end = copy + strlen(copy) - 1;
 
@@ -588,8 +566,7 @@ value_to_str(struct context *ctx, char **res)
      */
 
     if ((copy[0] == '"' && *end == '"') ||
-        (copy[0] == '\'' && *end == '\''))
-    {
+        (copy[0] == '\'' && *end == '\'')) {
         const char quote = copy[0];
         *end = '\0';
 
@@ -603,28 +580,26 @@ value_to_str(struct context *ctx, char **res)
         }
     }
 
-    free(*res);
+    xfree(*res);
     *res = copy;
     return true;
 }
 
 static bool NOINLINE
-value_to_wchars(struct context *ctx, char32_t **res)
-{
+value_to_wchars(struct context *ctx, char32_t **res) {
     char32_t *s = ambstoc32(ctx->value);
     if (s == NULL) {
         LOG_CONTEXTUAL_ERR("not a valid string value");
         return false;
     }
 
-    free(*res);
+    xfree(*res);
     *res = s;
     return true;
 }
 
 static bool NOINLINE
-value_to_enum(struct context *ctx, const char **value_map, int *res)
-{
+value_to_enum(struct context *ctx, const char **value_map, int *res) {
     size_t str_len = 0;
     size_t count = 0;
 
@@ -652,15 +627,13 @@ value_to_enum(struct context *ctx, const char **value_map, int *res)
 }
 
 static bool NOINLINE
-value_to_color(struct context *ctx, uint32_t *result, bool allow_alpha)
-{
+value_to_color(struct context *ctx, uint32_t *result, bool allow_alpha) {
     uint32_t color;
     const size_t len = strlen(ctx->value);
     const size_t component_count = len / 2;
 
     if (!(len == 6 || (allow_alpha && len == 8)) ||
-        !str_to_uint32(ctx->value, 16, &color))
-    {
+        !str_to_uint32(ctx->value, 16, &color)) {
         if (allow_alpha) {
             LOG_CONTEXTUAL_ERR("color must be in either RGB or ARGB format");
         } else {
@@ -681,8 +654,7 @@ value_to_color(struct context *ctx, uint32_t *result, bool allow_alpha)
 
 static bool NOINLINE
 value_to_two_colors(struct context *ctx,
-                    uint32_t *first, uint32_t *second, bool allow_alpha)
-{
+                    uint32_t *first, uint32_t *second, bool allow_alpha) {
     bool ret = false;
     const char *original_value = ctx->value;
 
@@ -711,14 +683,13 @@ value_to_two_colors(struct context *ctx,
     ret = true;
 
 out:
-    free(value_copy);
+    xfree(value_copy);
     ctx->value = original_value;
     return ret;
 }
 
 static bool NOINLINE
-value_to_pt_or_px(struct context *ctx, struct pt_or_px *res)
-{
+value_to_pt_or_px(struct context *ctx, struct pt_or_px *res) {
     const char *s = ctx->value;
 
     size_t len = s != NULL ? strlen(s) : 0;
@@ -745,8 +716,7 @@ value_to_pt_or_px(struct context *ctx, struct pt_or_px *res)
 }
 
 static struct config_font_list NOINLINE
-value_to_fonts(struct context *ctx)
-{
+value_to_fonts(struct context *ctx) {
     size_t count = 0;
     size_t size = 0;
     struct config_font *fonts = NULL;
@@ -754,8 +724,7 @@ value_to_fonts(struct context *ctx)
     char *copy = xstrdup(ctx->value);
     for (const char *font = strtok(copy, ",");
          font != NULL;
-         font = strtok(NULL, ","))
-    {
+         font = strtok(NULL, ",")) {
         /* Trim spaces, strictly speaking not necessary, but looks nice :) */
         while (isspace(font[0]))
             font++;
@@ -779,29 +748,27 @@ value_to_fonts(struct context *ctx)
         fonts[count++] = font_data;
     }
 
-    free(copy);
+    xfree(copy);
     return (struct config_font_list){.arr = fonts, .count = count};
 
 err:
-    free(copy);
-    free(fonts);
+    xfree(copy);
+    xfree(fonts);
     return (struct config_font_list){.arr = NULL, .count = 0};
 }
 
 static void NOINLINE
-free_argv(struct argv *argv)
-{
+free_argv(struct argv *argv) {
     if (argv->args == NULL)
         return;
     for (char **a = argv->args; *a != NULL; a++)
-        free(*a);
-    free(argv->args);
+        xfree(*a);
+    xfree(argv->args);
     argv->args = NULL;
 }
 
 static void NOINLINE
-clone_argv(struct argv *dst, const struct argv *src)
-{
+clone_argv(struct argv *dst, const struct argv *src) {
     if (src->args == NULL) {
         dst->args = NULL;
         return;
@@ -814,30 +781,26 @@ clone_argv(struct argv *dst, const struct argv *src)
     dst->args = xmalloc((count + 1) * sizeof(dst->args[0]));
     for (char **args_src = src->args, **args_dst = dst->args;
          *args_src != NULL; args_src++,
-             args_dst++)
-    {
+              args_dst++) {
         *args_dst = xstrdup(*args_src);
     }
     dst->args[count] = NULL;
 }
 
 static void
-spawn_template_free(struct config_spawn_template *template)
-{
+spawn_template_free(struct config_spawn_template *template) {
     free_argv(&template->argv);
 }
 
 static void
 spawn_template_clone(struct config_spawn_template *dst,
-                     const struct config_spawn_template *src)
-{
+                     const struct config_spawn_template *src) {
     clone_argv(&dst->argv, &src->argv);
 }
 
 static bool NOINLINE
 value_to_spawn_template(struct context *ctx,
-                        struct config_spawn_template *template)
-{
+                        struct config_spawn_template *template) {
     spawn_template_free(template);
 
     char **argv = NULL;
@@ -860,8 +823,7 @@ static bool parse_config_file(
     FILE *f, struct config *conf, const char *path, bool errors_are_fatal);
 
 static bool
-parse_section_main(struct context *ctx)
-{
+parse_section_main(struct context *ctx) {
     struct config *conf = ctx->conf;
     const char *key = ctx->key;
     const char *value = ctx->value;
@@ -886,7 +848,7 @@ parse_section_main(struct context *ctx)
 
         if (include_path[0] != '/') {
             LOG_CONTEXTUAL_ERR("not an absolute path");
-            free(_include_path);
+            xfree(_include_path);
             return false;
         }
 
@@ -894,7 +856,7 @@ parse_section_main(struct context *ctx)
 
         if (include == NULL) {
             LOG_CONTEXTUAL_ERRNO("failed to open");
-            free(_include_path);
+            xfree(_include_path);
             return false;
         }
 
@@ -903,7 +865,7 @@ parse_section_main(struct context *ctx)
         fclose(include);
 
         LOG_INFO("imported sub-configuration from %s", include_path);
-        free(_include_path);
+        xfree(_include_path);
         return ret;
     }
 
@@ -1000,12 +962,12 @@ parse_section_main(struct context *ctx)
 
     else if (streq(key, "initial-window-mode")) {
         _Static_assert(sizeof(conf->startup_mode) == sizeof(int),
-            "enum is not 32-bit");
+                       "enum is not 32-bit");
 
         return value_to_enum(
-                ctx,
-                (const char *[]){"windowed", "maximized", "fullscreen", NULL},
-                (int *)&conf->startup_mode);
+            ctx,
+            (const char *[]){"windowed", "maximized", "fullscreen", NULL},
+            (int *)&conf->startup_mode);
     }
 
     else if (streq(key, "font") ||
@@ -1015,9 +977,9 @@ parse_section_main(struct context *ctx)
 
     {
         size_t idx =
-            streq(key, "font") ? 0 :
-            streq(key, "font-bold") ? 1 :
-            streq(key, "font-italic") ? 2 : 3;
+            streq(key, "font") ? 0 : streq(key, "font-bold") ? 1
+                                 : streq(key, "font-italic") ? 2
+                                                             : 3;
 
         struct config_font_list new_list = value_to_fonts(ctx);
         if (new_list.arr == NULL)
@@ -1105,7 +1067,7 @@ parse_section_main(struct context *ctx)
             return false;
 
         if (streq(conf->utmp_helper_path, "none")) {
-            free(conf->utmp_helper_path);
+            xfree(conf->utmp_helper_path);
             conf->utmp_helper_path = NULL;
         }
 
@@ -1120,8 +1082,7 @@ parse_section_main(struct context *ctx)
             sizeof(conf->initial_color_theme) == sizeof(int),
             "enum is not 32-bit");
 
-        if (!value_to_enum(ctx, (const char*[]){
-            "dark", "light", "1", "2", NULL},
+        if (!value_to_enum(ctx, (const char *[]){"dark", "light", "1", "2", NULL},
                            (int *)&conf->initial_color_theme))
             return false;
 
@@ -1166,8 +1127,7 @@ parse_section_main(struct context *ctx)
 }
 
 static bool
-parse_section_security(struct context *ctx)
-{
+parse_section_security(struct context *ctx) {
     struct config *conf = ctx->conf;
     const char *key = ctx->key;
 
@@ -1185,8 +1145,7 @@ parse_section_security(struct context *ctx)
 }
 
 static bool
-parse_section_bell(struct context *ctx)
-{
+parse_section_bell(struct context *ctx) {
     struct config *conf = ctx->conf;
     const char *key = ctx->key;
 
@@ -1209,8 +1168,7 @@ parse_section_bell(struct context *ctx)
 }
 
 static bool
-parse_section_desktop_notifications(struct context *ctx)
-{
+parse_section_desktop_notifications(struct context *ctx) {
     struct config *conf = ctx->conf;
     const char *key = ctx->key;
 
@@ -1233,8 +1191,7 @@ parse_section_desktop_notifications(struct context *ctx)
 }
 
 static bool
-parse_section_scrollback(struct context *ctx)
-{
+parse_section_scrollback(struct context *ctx) {
     struct config *conf = ctx->conf;
     const char *key = ctx->key;
     const char *value = ctx->value;
@@ -1255,12 +1212,10 @@ parse_section_scrollback(struct context *ctx)
 
     else if (streq(key, "indicator-format")) {
         if (streq(value, "percentage")) {
-            conf->scrollback.indicator.format
-                = SCROLLBACK_INDICATOR_FORMAT_PERCENTAGE;
+            conf->scrollback.indicator.format = SCROLLBACK_INDICATOR_FORMAT_PERCENTAGE;
             return true;
         } else if (streq(value, "line")) {
-            conf->scrollback.indicator.format
-                = SCROLLBACK_INDICATOR_FORMAT_LINENO;
+            conf->scrollback.indicator.format = SCROLLBACK_INDICATOR_FORMAT_LINENO;
             return true;
         } else
             return value_to_wchars(ctx, &conf->scrollback.indicator.text);
@@ -1276,8 +1231,7 @@ parse_section_scrollback(struct context *ctx)
 }
 
 static bool
-parse_section_url(struct context *ctx)
-{
+parse_section_url(struct context *ctx) {
     struct config *conf = ctx->conf;
     const char *key = ctx->key;
 
@@ -1317,7 +1271,7 @@ parse_section_url(struct context *ctx)
         }
 
         regfree(&conf->url.preg);
-        free(conf->url.regex);
+        xfree(conf->url.regex);
 
         conf->url.regex = xstrdup(regex);
         conf->url.preg = preg;
@@ -1331,8 +1285,7 @@ parse_section_url(struct context *ctx)
 }
 
 static bool
-parse_section_regex(struct context *ctx)
-{
+parse_section_regex(struct context *ctx) {
     struct config *conf = ctx->conf;
     const char *key = ctx->key;
 
@@ -1373,7 +1326,7 @@ parse_section_regex(struct context *ctx)
         }
 
         regfree(&regex->preg);
-        free(regex->regex);
+        xfree(regex->regex);
 
         regex->regex = xstrdup(regex_string);
         regex->preg = preg;
@@ -1403,8 +1356,7 @@ parse_section_regex(struct context *ctx)
 }
 
 static bool NOINLINE
-parse_color_theme(struct context *ctx, struct color_theme *theme)
-{
+parse_color_theme(struct context *ctx, struct color_theme *theme) {
     const char *key = ctx->key;
 
     size_t key_len = strlen(key);
@@ -1438,25 +1390,28 @@ parse_color_theme(struct context *ctx, struct color_theme *theme)
 
     else if (str_has_prefix(key, "sixel") &&
              ((key_len == 6 && last_digit < 10) ||
-              (key_len == 7 && key[5] == '1' && last_digit < 6)))
-    {
+              (key_len == 7 && key[5] == '1' && last_digit < 6))) {
         size_t idx = key_len == 6 ? last_digit : 10 + last_digit;
         return value_to_color(ctx, &theme->sixel[idx], false);
     }
 
-    else if (streq(key, "flash")) color = &theme->flash;
-    else if (streq(key, "foreground")) color = &theme->fg;
-    else if (streq(key, "background")) color = &theme->bg;
-    else if (streq(key, "selection-foreground")) color = &theme->selection_fg;
-    else if (streq(key, "selection-background")) color = &theme->selection_bg;
+    else if (streq(key, "flash"))
+        color = &theme->flash;
+    else if (streq(key, "foreground"))
+        color = &theme->fg;
+    else if (streq(key, "background"))
+        color = &theme->bg;
+    else if (streq(key, "selection-foreground"))
+        color = &theme->selection_fg;
+    else if (streq(key, "selection-background"))
+        color = &theme->selection_bg;
 
     else if (streq(key, "jump-labels")) {
         if (!value_to_two_colors(
                 ctx,
                 &theme->jump_label.fg,
                 &theme->jump_label.bg,
-                false))
-        {
+                false)) {
             return false;
         }
 
@@ -1469,8 +1424,7 @@ parse_color_theme(struct context *ctx, struct color_theme *theme)
                 ctx,
                 &theme->scrollback_indicator.fg,
                 &theme->scrollback_indicator.bg,
-                false))
-        {
+                false)) {
             return false;
         }
 
@@ -1483,8 +1437,7 @@ parse_color_theme(struct context *ctx, struct color_theme *theme)
                 ctx,
                 &theme->search_box.no_match.fg,
                 &theme->search_box.no_match.bg,
-                false))
-        {
+                false)) {
             return false;
         }
 
@@ -1497,8 +1450,7 @@ parse_color_theme(struct context *ctx, struct color_theme *theme)
                 ctx,
                 &theme->search_box.match.fg,
                 &theme->search_box.match.bg,
-                false))
-        {
+                false)) {
             return false;
         }
 
@@ -1511,8 +1463,7 @@ parse_color_theme(struct context *ctx, struct color_theme *theme)
                 ctx,
                 &theme->cursor.text,
                 &theme->cursor.cursor,
-                false))
-        {
+                false)) {
             return false;
         }
 
@@ -1558,7 +1509,7 @@ parse_color_theme(struct context *ctx, struct color_theme *theme)
 
     else if (streq(key, "alpha-mode")) {
         _Static_assert(sizeof(theme->alpha_mode) == sizeof(int),
-        "enum is not 32-bit");
+                       "enum is not 32-bit");
 
         return value_to_enum(
             ctx,
@@ -1590,20 +1541,17 @@ parse_color_theme(struct context *ctx, struct color_theme *theme)
 }
 
 static bool
-parse_section_colors_dark(struct context *ctx)
-{
+parse_section_colors_dark(struct context *ctx) {
     return parse_color_theme(ctx, &ctx->conf->colors_dark);
 }
 
 static bool
-parse_section_colors_light(struct context *ctx)
-{
+parse_section_colors_light(struct context *ctx) {
     return parse_color_theme(ctx, &ctx->conf->colors_light);
 }
 
 static bool
-parse_section_colors(struct context *ctx)
-{
+parse_section_colors(struct context *ctx) {
     LOG_WARN("%s:%d: [colors]: deprecated; use [colors-dark] instead",
              ctx->path, ctx->lineno);
 
@@ -1616,8 +1564,7 @@ parse_section_colors(struct context *ctx)
 }
 
 static bool
-parse_section_colors2(struct context *ctx)
-{
+parse_section_colors2(struct context *ctx) {
     LOG_WARN("%s:%d: [colors2]: deprecated; use [colors-light] instead",
              ctx->path, ctx->lineno);
 
@@ -1630,8 +1577,7 @@ parse_section_colors2(struct context *ctx)
 }
 
 static bool
-parse_section_cursor(struct context *ctx)
-{
+parse_section_cursor(struct context *ctx) {
     struct config *conf = ctx->conf;
     const char *key = ctx->key;
 
@@ -1674,8 +1620,7 @@ parse_section_cursor(struct context *ctx)
 }
 
 static bool
-parse_section_mouse(struct context *ctx)
-{
+parse_section_mouse(struct context *ctx) {
     struct config *conf = ctx->conf;
     const char *key = ctx->key;
 
@@ -1692,8 +1637,7 @@ parse_section_mouse(struct context *ctx)
 }
 
 static bool
-parse_section_csd(struct context *ctx)
-{
+parse_section_csd(struct context *ctx) {
     struct config *conf = ctx->conf;
     const char *key = ctx->key;
 
@@ -1789,42 +1733,45 @@ parse_section_csd(struct context *ctx)
 }
 
 static void
-free_binding_aux(struct binding_aux *aux)
-{
+free_binding_aux(struct binding_aux *aux) {
     if (!aux->master_copy)
         return;
 
     switch (aux->type) {
-    case BINDING_AUX_NONE: break;
-    case BINDING_AUX_PIPE: free_argv(&aux->pipe); break;
-    case BINDING_AUX_TEXT: free(aux->text.data); break;
-    case BINDING_AUX_REGEX: free(aux->regex_name); break;
+    case BINDING_AUX_NONE:
+        break;
+    case BINDING_AUX_PIPE:
+        free_argv(&aux->pipe);
+        break;
+    case BINDING_AUX_TEXT:
+        xfree(aux->text.data);
+        break;
+    case BINDING_AUX_REGEX:
+        xfree(aux->regex_name);
+        break;
     }
 }
 
 static void
-free_key_binding(struct config_key_binding *binding)
-{
+free_key_binding(struct config_key_binding *binding) {
     free_binding_aux(&binding->aux);
     tll_free_and_free(binding->modifiers, free);
 }
 
 static void NOINLINE
-free_key_binding_list(struct config_key_binding_list *bindings)
-{
+free_key_binding_list(struct config_key_binding_list *bindings) {
     struct config_key_binding *binding = &bindings->arr[0];
 
     for (size_t i = 0; i < bindings->count; i++, binding++)
         free_key_binding(binding);
-    free(bindings->arr);
+    xfree(bindings->arr);
 
     bindings->arr = NULL;
     bindings->count = 0;
 }
 
 static void NOINLINE
-parse_modifiers(const char *text, size_t len, config_modifier_list_t *modifiers)
-{
+parse_modifiers(const char *text, size_t len, config_modifier_list_t *modifiers) {
     tll_free_and_free(*modifiers, free);
 
     /* Handle "none" separately because e.g. none+shift is nonsense */
@@ -1835,18 +1782,16 @@ parse_modifiers(const char *text, size_t len, config_modifier_list_t *modifiers)
 
     for (char *ctx = NULL, *key = strtok_r(copy, "+", &ctx);
          key != NULL;
-         key = strtok_r(NULL, "+", &ctx))
-    {
+         key = strtok_r(NULL, "+", &ctx)) {
         tll_push_back(*modifiers, xstrdup(key));
     }
 
-    free(copy);
+    xfree(copy);
     tll_sort(*modifiers, strcmp);
 }
 
 static int NOINLINE
-argv_compare(const struct argv *argv1, const struct argv *argv2)
-{
+argv_compare(const struct argv *argv1, const struct argv *argv2) {
     if (argv1->args == NULL && argv2->args == NULL)
         return 0;
 
@@ -1855,7 +1800,7 @@ argv_compare(const struct argv *argv1, const struct argv *argv2)
     if (argv2->args == NULL)
         return 1;
 
-    for (size_t i = 0; ; i++) {
+    for (size_t i = 0;; i++) {
         if (argv1->args[i] == NULL && argv2->args[i] == NULL)
             return 0;
         if (argv1->args[i] == NULL)
@@ -1874,8 +1819,7 @@ argv_compare(const struct argv *argv1, const struct argv *argv2)
 
 static bool NOINLINE
 binding_aux_equal(const struct binding_aux *a,
-                  const struct binding_aux *b)
-{
+                  const struct binding_aux *b) {
     if (a->type != b->type)
         return false;
 
@@ -1900,8 +1844,7 @@ binding_aux_equal(const struct binding_aux *a,
 
 static void NOINLINE
 remove_from_key_bindings_list(struct config_key_binding_list *bindings,
-                              int action, const struct binding_aux *aux)
-{
+                              int action, const struct binding_aux *aux) {
     size_t remove_first_idx = 0;
     size_t remove_count = 0;
 
@@ -1954,8 +1897,7 @@ static const struct {
 };
 
 static int
-mouse_button_name_to_code(const char *name)
-{
+mouse_button_name_to_code(const char *name) {
     for (size_t i = 0; i < ALEN(button_map); i++) {
         if (streq(button_map[i].name, name))
             return button_map[i].code;
@@ -1963,9 +1905,8 @@ mouse_button_name_to_code(const char *name)
     return -1;
 }
 
-static const char*
-mouse_button_code_to_name(int code)
-{
+static const char *
+mouse_button_code_to_name(int code) {
     for (size_t i = 0; i < ALEN(button_map); i++) {
         if (code == button_map[i].code)
             return button_map[i].name;
@@ -1978,8 +1919,7 @@ static bool NOINLINE
 value_to_key_combos(struct context *ctx, int action,
                     struct binding_aux *aux,
                     struct config_key_binding_list *bindings,
-                    enum key_binding_type type)
-{
+                    enum key_binding_type type) {
     if (strcasecmp(ctx->value, "none") == 0) {
         remove_from_key_bindings_list(bindings, action, aux);
         return true;
@@ -1987,11 +1927,10 @@ value_to_key_combos(struct context *ctx, int action,
 
     /* Count number of combinations */
     size_t combo_count = 1;
-    size_t used_combos = 1;  /* For error handling */
+    size_t used_combos = 1; /* For error handling */
     for (const char *p = strchr(ctx->value, ' ');
          p != NULL;
-         p = strchr(p + 1, ' '))
-    {
+         p = strchr(p + 1, ' ')) {
         combo_count++;
     }
 
@@ -2003,8 +1942,7 @@ value_to_key_combos(struct context *ctx, int action,
     for (char *tok_ctx = NULL, *combo = strtok_r(copy, " ", &tok_ctx);
          combo != NULL;
          combo = strtok_r(NULL, " ", &tok_ctx),
-             idx++, used_combos++)
-    {
+              idx++, used_combos++) {
         struct config_key_binding *new_combo = &new_combos[idx];
         new_combo->action = action;
         new_combo->aux = *aux;
@@ -2026,7 +1964,7 @@ value_to_key_combos(struct context *ctx, int action,
         } else {
             *key = '\0';
             parse_modifiers(combo, key - combo, &new_combo->modifiers);
-            key++;  /* Skip past the '+' */
+            key++; /* Skip past the '+' */
         }
 
         switch (type) {
@@ -2070,13 +2008,12 @@ value_to_key_combos(struct context *ctx, int action,
             break;
         }
         }
-
     }
 
     if (idx == 0) {
         LOG_CONTEXTUAL_ERR(
             "empty binding not allowed (set to 'none' to unmap)");
-        free(copy);
+        xfree(copy);
         return false;
     }
 
@@ -2091,20 +2028,19 @@ value_to_key_combos(struct context *ctx, int action,
            combo_count * sizeof(bindings->arr[0]));
     bindings->count += combo_count;
 
-    free(copy);
+    xfree(copy);
     return true;
 
 err:
     for (size_t i = 0; i < used_combos; i++)
         free_key_binding(&new_combos[i]);
-    free(copy);
+    xfree(copy);
     return false;
 }
 
 static bool
 modifiers_equal(const config_modifier_list_t *mods1,
-                const config_modifier_list_t *mods2)
-{
+                const config_modifier_list_t *mods2) {
     if (tll_length(*mods1) != tll_length(*mods2))
         return false;
 
@@ -2135,8 +2071,7 @@ modifiers_equal(const config_modifier_list_t *mods1,
      */
 }
 
-UNITTEST
-{
+UNITTEST {
     config_modifier_list_t mods1 = tll_init();
     config_modifier_list_t mods2 = tll_init();
 
@@ -2149,25 +2084,23 @@ UNITTEST
     tll_push_back(mods2, xstrdup("zoo"));
     xassert(!modifiers_equal(&mods1, &mods2));
 
-    free(tll_pop_back(mods2));
+    xfree(tll_pop_back(mods2));
     tll_push_back(mods2, xstrdup("bar"));
     xassert(modifiers_equal(&mods1, &mods2));
 
-    tll_free_and_free(mods1, free);
-    tll_free_and_free(mods2, free);
+    tll_free_and_free(mods1, xfree);
+    tll_free_and_free(mods2, xfree);
 }
 
 static bool
 modifiers_disjoint(const config_modifier_list_t *mods1,
-                const config_modifier_list_t *mods2)
-{
+                   const config_modifier_list_t *mods2) {
     return !modifiers_equal(mods1, mods2);
 }
 
-static char * NOINLINE
-modifiers_to_str(const config_modifier_list_t *mods, bool strip_last_plus)
-{
-    size_t len = tll_length(*mods);  /* '+' separator */
+static char *NOINLINE
+modifiers_to_str(const config_modifier_list_t *mods, bool strip_last_plus) {
+    size_t len = tll_length(*mods); /* '+' separator */
     tll_foreach(*mods, it)
         len += strlen(it->item);
 
@@ -2207,8 +2140,7 @@ modifiers_to_str(const config_modifier_list_t *mods, bool strip_last_plus)
  *  - argv: allocated array containing {"cmd", "arg1", "arg2", NULL}. Caller frees.
  */
 static ssize_t NOINLINE
-pipe_argv_from_value(struct context *ctx, struct argv *argv)
-{
+pipe_argv_from_value(struct context *ctx, struct argv *argv) {
     argv->args = NULL;
 
     if (ctx->value[0] != '[')
@@ -2225,7 +2157,7 @@ pipe_argv_from_value(struct context *ctx, struct argv *argv)
 
     if (!tokenize_cmdline(cmd, &argv->args)) {
         LOG_CONTEXTUAL_ERR("syntax error in command line");
-        free(cmd);
+        xfree(cmd);
         return -1;
     }
 
@@ -2236,13 +2168,12 @@ pipe_argv_from_value(struct context *ctx, struct argv *argv)
         remove_len++;
     }
 
-    free(cmd);
+    xfree(cmd);
     return remove_len;
 }
 
 static ssize_t NOINLINE
-regex_name_from_value(struct context *ctx, char **regex_name)
-{
+regex_name_from_value(struct context *ctx, char **regex_name) {
     *regex_name = NULL;
 
     if (ctx->value[0] != '[')
@@ -2267,13 +2198,11 @@ regex_name_from_value(struct context *ctx, char **regex_name)
     return remove_len;
 }
 
-
 static bool NOINLINE
 parse_key_binding_section(struct context *ctx,
                           int action_count,
                           const char *const action_map[static action_count],
-                          struct config_key_binding_list *bindings)
-{
+                          struct config_key_binding_list *bindings) {
     for (int action = 0; action < action_count; action++) {
         if (action_map[action] == NULL)
             continue;
@@ -2286,8 +2215,7 @@ parse_key_binding_section(struct context *ctx,
         /* TODO: this is ugly... */
         if (action_map == binding_action_map &&
             action >= BIND_ACTION_PIPE_SCROLLBACK &&
-            action <= BIND_ACTION_PIPE_COMMAND_OUTPUT)
-        {
+            action <= BIND_ACTION_PIPE_COMMAND_OUTPUT) {
             ssize_t pipe_remove_len = pipe_argv_from_value(ctx, &aux.pipe);
             if (pipe_remove_len <= 0)
                 return false;
@@ -2296,8 +2224,7 @@ parse_key_binding_section(struct context *ctx,
             aux.master_copy = true;
         } else if (action_map == binding_action_map &&
                    action >= BIND_ACTION_REGEX_LAUNCH &&
-                   action <= BIND_ACTION_REGEX_COPY)
-        {
+                   action <= BIND_ACTION_REGEX_COPY) {
             char *regex_name = NULL;
             ssize_t regex_remove_len = regex_name_from_value(ctx, &regex_name);
             if (regex_remove_len <= 0)
@@ -2310,16 +2237,15 @@ parse_key_binding_section(struct context *ctx,
 
         if (action_map == binding_action_map &&
             action >= BIND_ACTION_THEME_SWITCH_1 &&
-            action <= BIND_ACTION_THEME_SWITCH_2)
-        {
+            action <= BIND_ACTION_THEME_SWITCH_2) {
             const char *use_instead =
                 action_map[action == BIND_ACTION_THEME_SWITCH_1
-                    ? BIND_ACTION_THEME_SWITCH_DARK
-                    : BIND_ACTION_THEME_SWITCH_LIGHT];
+                               ? BIND_ACTION_THEME_SWITCH_DARK
+                               : BIND_ACTION_THEME_SWITCH_LIGHT];
 
             const char *notif = action == BIND_ACTION_THEME_SWITCH_1
-                ? "[key-bindings].color-theme-switch-1: use [key-bindings].color-theme-switch-dark instead"
-                : "[key-bindings].color-theme-switch-2: use [key-bindings].color-theme-switch-light instead";
+                                    ? "[key-bindings].color-theme-switch-1: use [key-bindings].color-theme-switch-dark instead"
+                                    : "[key-bindings].color-theme-switch-2: use [key-bindings].color-theme-switch-light instead";
 
             LOG_WARN("%s:%d: [key-bindings].%s: deprecated, use %s instead",
                      ctx->path, ctx->lineno,
@@ -2343,8 +2269,7 @@ parse_key_binding_section(struct context *ctx,
     return false;
 }
 
-UNITTEST
-{
+UNITTEST {
     enum test_actions {
         TEST_ACTION_NONE,
         TEST_ACTION_FOO,
@@ -2438,12 +2363,11 @@ UNITTEST
     xassert(parse_key_binding_section(&ctx, ALEN(map), map, &bindings));
     xassert(bindings.count == 0);
 
-    free(bindings.arr);
+    xfree(bindings.arr);
 }
 
 static bool
-parse_section_key_bindings(struct context *ctx)
-{
+parse_section_key_bindings(struct context *ctx) {
     return parse_key_binding_section(
         ctx,
         BIND_ACTION_KEY_COUNT, binding_action_map,
@@ -2451,8 +2375,7 @@ parse_section_key_bindings(struct context *ctx)
 }
 
 static bool
-parse_section_search_bindings(struct context *ctx)
-{
+parse_section_search_bindings(struct context *ctx) {
     return parse_key_binding_section(
         ctx,
         BIND_ACTION_SEARCH_COUNT, search_binding_action_map,
@@ -2460,8 +2383,7 @@ parse_section_search_bindings(struct context *ctx)
 }
 
 static bool
-parse_section_url_bindings(struct context *ctx)
-{
+parse_section_url_bindings(struct context *ctx) {
     return parse_key_binding_section(
         ctx,
         BIND_ACTION_URL_COUNT, url_binding_action_map,
@@ -2472,14 +2394,13 @@ static bool NOINLINE
 resolve_key_binding_collisions(struct config *conf, const char *section_name,
                                const char *const action_map[],
                                struct config_key_binding_list *bindings,
-                               enum key_binding_type type)
-{
+                               enum key_binding_type type) {
     bool ret = true;
 
     for (size_t i = 1; i < bindings->count; i++) {
-        enum {COLLISION_NONE,
-            COLLISION_OVERRIDE,
-            COLLISION_BINDING} collision_type = COLLISION_NONE;
+        enum { COLLISION_NONE,
+               COLLISION_OVERRIDE,
+               COLLISION_BINDING } collision_type = COLLISION_NONE;
         const struct config_key_binding *collision_binding = NULL;
 
         struct config_key_binding *binding1 = &bindings->arr[i];
@@ -2490,22 +2411,19 @@ resolve_key_binding_collisions(struct config *conf, const char *section_name,
         /* Does our modifiers collide with the selection override mods? */
         if (type == MOUSE_BINDING &&
             !modifiers_disjoint(
-                mods1, &conf->mouse.selection_override_modifiers))
-        {
+                mods1, &conf->mouse.selection_override_modifiers)) {
             collision_type = COLLISION_OVERRIDE;
         }
 
         /* Does our binding collide with another binding? */
         for (ssize_t j = i - 1;
              collision_type == COLLISION_NONE && j >= 0;
-             j--)
-        {
+             j--) {
             const struct config_key_binding *binding2 = &bindings->arr[j];
             xassert(binding2->action != BIND_ACTION_NONE);
 
             if (binding2->action == binding1->action &&
-                binding_aux_equal(&binding1->aux, &binding2->aux))
-            {
+                binding_aux_equal(&binding1->aux, &binding2->aux)) {
                 continue;
             }
 
@@ -2540,7 +2458,7 @@ resolve_key_binding_collisions(struct config *conf, const char *section_name,
             char *modifier_names = modifiers_to_str(mods1, false);
             char sym_name[64];
 
-            switch (type){
+            switch (type) {
             case KEY_BINDING:
                 xkb_keysym_get_name(binding1->k.sym, sym_name, sizeof(sym_name));
                 break;
@@ -2592,19 +2510,18 @@ resolve_key_binding_collisions(struct config *conf, const char *section_name,
                     action_map[binding1->action],
                     modifier_names, sym_name, override_names);
                 ret = false;
-                free(override_names);
+                xfree(override_names);
                 break;
             }
             }
 
-            free(modifier_names);
+            xfree(modifier_names);
 
             if (binding1->aux.master_copy && i + 1 < bindings->count) {
                 struct config_key_binding *next = &bindings->arr[i + 1];
 
                 if (next->action == binding1->action &&
-                    binding_aux_equal(&binding1->aux, &next->aux))
-                {
+                    binding_aux_equal(&binding1->aux, &next->aux)) {
                     /* Transfer ownership to next binding */
                     next->aux.master_copy = true;
                     binding1->aux.master_copy = false;
@@ -2627,8 +2544,7 @@ resolve_key_binding_collisions(struct config *conf, const char *section_name,
 }
 
 static bool
-parse_section_mouse_bindings(struct context *ctx)
-{
+parse_section_mouse_bindings(struct context *ctx) {
     struct config *conf = ctx->conf;
     const char *key = ctx->key;
     const char *value = ctx->value;
@@ -2651,8 +2567,7 @@ parse_section_mouse_bindings(struct context *ctx)
 
     for (enum bind_action_normal action = 0;
          action < BIND_ACTION_COUNT;
-         action++)
-    {
+         action++) {
         if (binding_action_map[action] == NULL)
             continue;
 
@@ -2660,8 +2575,7 @@ parse_section_mouse_bindings(struct context *ctx)
             continue;
 
         if (!value_to_key_combos(
-                ctx, action, &aux, &conf->bindings.mouse, MOUSE_BINDING))
-        {
+                ctx, action, &aux, &conf->bindings.mouse, MOUSE_BINDING)) {
             free_binding_aux(&aux);
             return false;
         }
@@ -2675,8 +2589,7 @@ parse_section_mouse_bindings(struct context *ctx)
 }
 
 static bool
-parse_section_text_bindings(struct context *ctx)
-{
+parse_section_text_bindings(struct context *ctx) {
     struct config *conf = ctx->conf;
     const char *key = ctx->key;
 
@@ -2731,14 +2644,13 @@ parse_section_text_bindings(struct context *ctx)
     struct binding_aux aux = {
         .type = BINDING_AUX_TEXT,
         .text = {
-            .data = data,  /* data is now owned by value_to_key_combos() */
+            .data = data, /* data is now owned by value_to_key_combos() */
             .len = data_len,
         },
     };
 
     if (!value_to_key_combos(ctx, BIND_ACTION_TEXT_BINDING, &aux,
-                             &conf->bindings.key, KEY_BINDING))
-    {
+                             &conf->bindings.key, KEY_BINDING)) {
         /* Do *not* free(data) - it is handled by value_to_key_combos() */
         return false;
     }
@@ -2746,13 +2658,12 @@ parse_section_text_bindings(struct context *ctx)
     return true;
 
 err:
-    free(data);
+    xfree(data);
     return false;
 }
 
 static bool
-parse_section_environment(struct context *ctx)
-{
+parse_section_environment(struct context *ctx) {
     struct config *conf = ctx->conf;
     const char *key = ctx->key;
 
@@ -2775,8 +2686,7 @@ parse_section_environment(struct context *ctx)
 }
 
 static bool
-parse_section_tweak(struct context *ctx)
-{
+parse_section_tweak(struct context *ctx) {
     struct config *conf = ctx->conf;
     const char *key = ctx->key;
 
@@ -2913,14 +2823,14 @@ parse_section_tweak(struct context *ctx)
 
 #if defined(HAVE_PIXMAN_RGBA_16)
         return value_to_enum(
-                ctx,
-                (const char *[]){"auto", "8-bit", "10-bit", "16-bit", NULL},
-                (int *)&conf->tweak.surface_bit_depth);
+            ctx,
+            (const char *[]){"auto", "8-bit", "10-bit", "16-bit", NULL},
+            (int *)&conf->tweak.surface_bit_depth);
 #else
         return value_to_enum(
-                ctx,
-                (const char *[]){"auto", "8-bit", "10-bit", NULL},
-                (int *)&conf->tweak.surface_bit_depth);
+            ctx,
+            (const char *[]){"auto", "8-bit", "10-bit", NULL},
+            (int *)&conf->tweak.surface_bit_depth);
 #endif
     }
 
@@ -2951,8 +2861,7 @@ parse_section_touch(struct context *ctx) {
 }
 
 static bool
-parse_key_value(char *kv, char **section, const char **key, const char **value)
-{
+parse_key_value(char *kv, char **section, const char **key, const char **value) {
     bool section_is_needed = section != NULL;
 
     /* Strip leading whitespace */
@@ -3050,37 +2959,36 @@ static const struct {
     const char *name;
     bool allow_colon_suffix;
 } section_info[] = {
-    [SECTION_MAIN] =            {&parse_section_main, "main"},
-    [SECTION_SECURITY] =        {&parse_section_security, "security"},
-    [SECTION_BELL] =            {&parse_section_bell, "bell"},
+    [SECTION_MAIN] = {&parse_section_main, "main"},
+    [SECTION_SECURITY] = {&parse_section_security, "security"},
+    [SECTION_BELL] = {&parse_section_bell, "bell"},
     [SECTION_DESKTOP_NOTIFICATIONS] = {&parse_section_desktop_notifications, "desktop-notifications"},
-    [SECTION_SCROLLBACK] =      {&parse_section_scrollback, "scrollback"},
-    [SECTION_URL] =             {&parse_section_url, "url"},
-    [SECTION_REGEX] =           {&parse_section_regex, "regex", true},
-    [SECTION_COLORS_DARK] =     {&parse_section_colors_dark, "colors-dark"},
-    [SECTION_COLORS_LIGHT] =    {&parse_section_colors_light, "colors-light"},
-    [SECTION_CURSOR] =          {&parse_section_cursor, "cursor"},
-    [SECTION_MOUSE] =           {&parse_section_mouse, "mouse"},
-    [SECTION_CSD] =             {&parse_section_csd, "csd"},
-    [SECTION_KEY_BINDINGS] =    {&parse_section_key_bindings, "key-bindings"},
+    [SECTION_SCROLLBACK] = {&parse_section_scrollback, "scrollback"},
+    [SECTION_URL] = {&parse_section_url, "url"},
+    [SECTION_REGEX] = {&parse_section_regex, "regex", true},
+    [SECTION_COLORS_DARK] = {&parse_section_colors_dark, "colors-dark"},
+    [SECTION_COLORS_LIGHT] = {&parse_section_colors_light, "colors-light"},
+    [SECTION_CURSOR] = {&parse_section_cursor, "cursor"},
+    [SECTION_MOUSE] = {&parse_section_mouse, "mouse"},
+    [SECTION_CSD] = {&parse_section_csd, "csd"},
+    [SECTION_KEY_BINDINGS] = {&parse_section_key_bindings, "key-bindings"},
     [SECTION_SEARCH_BINDINGS] = {&parse_section_search_bindings, "search-bindings"},
-    [SECTION_URL_BINDINGS] =    {&parse_section_url_bindings, "url-bindings"},
-    [SECTION_MOUSE_BINDINGS] =  {&parse_section_mouse_bindings, "mouse-bindings"},
-    [SECTION_TEXT_BINDINGS] =   {&parse_section_text_bindings, "text-bindings"},
-    [SECTION_ENVIRONMENT] =     {&parse_section_environment, "environment"},
-    [SECTION_TWEAK] =           {&parse_section_tweak, "tweak"},
-    [SECTION_TOUCH] =           {&parse_section_touch, "touch"},
+    [SECTION_URL_BINDINGS] = {&parse_section_url_bindings, "url-bindings"},
+    [SECTION_MOUSE_BINDINGS] = {&parse_section_mouse_bindings, "mouse-bindings"},
+    [SECTION_TEXT_BINDINGS] = {&parse_section_text_bindings, "text-bindings"},
+    [SECTION_ENVIRONMENT] = {&parse_section_environment, "environment"},
+    [SECTION_TWEAK] = {&parse_section_tweak, "tweak"},
+    [SECTION_TOUCH] = {&parse_section_touch, "touch"},
 
     /* Deprecated */
-    [SECTION_COLORS] =          {&parse_section_colors, "colors"},
-    [SECTION_COLORS2] =         {&parse_section_colors2, "colors2"},
+    [SECTION_COLORS] = {&parse_section_colors, "colors"},
+    [SECTION_COLORS2] = {&parse_section_colors2, "colors2"},
 };
 
 static_assert(ALEN(section_info) == SECTION_COUNT, "section info array size mismatch");
 
 static enum section
-str_to_section(char *str, char **suffix)
-{
+str_to_section(char *str, char **suffix) {
     *suffix = NULL;
 
     for (enum section section = SECTION_MAIN; section < SECTION_COUNT; ++section) {
@@ -3107,21 +3015,20 @@ str_to_section(char *str, char **suffix)
 }
 
 static bool
-parse_config_file(FILE *f, struct config *conf, const char *path, bool errors_are_fatal)
-{
+parse_config_file(FILE *f, struct config *conf, const char *path, bool errors_are_fatal) {
     enum section section = SECTION_MAIN;
 
     char *_line = NULL;
     size_t count = 0;
     bool ret = true;
 
-#define error_or_continue()                     \
-    {                                           \
-        if (errors_are_fatal) {                 \
-            ret = false;                        \
-            goto done;                          \
-        } else                                  \
-            continue;                           \
+#define error_or_continue()     \
+    {                           \
+        if (errors_are_fatal) { \
+            ret = false;        \
+            goto done;          \
+        } else                  \
+            continue;           \
     }
 
     char *section_name = xstrdup("main");
@@ -3135,7 +3042,7 @@ parse_config_file(FILE *f, struct config *conf, const char *path, bool errors_ar
         .lineno = 0,
         .errors_are_fatal = errors_are_fatal,
     };
-    struct context *ctx = &context;  /* For LOG_AND_*() */
+    struct context *ctx = &context; /* For LOG_AND_*() */
 
     errno = 0;
     ssize_t len;
@@ -3220,8 +3127,8 @@ parse_config_file(FILE *f, struct config *conf, const char *path, bool errors_ar
                 error_or_continue();
             }
 
-            free(section_name);
-            free(section_suffix);
+            xfree(section_name);
+            xfree(section_suffix);
             section_name = xstrdup(key_value);
             section_suffix = maybe_section_suffix != NULL ? xstrdup(maybe_section_suffix) : NULL;
             context.section = section_name;
@@ -3264,15 +3171,14 @@ parse_config_file(FILE *f, struct config *conf, const char *path, bool errors_ar
     }
 
 done:
-    free(section_name);
-    free(section_suffix);
-    free(_line);
+    xfree(section_name);
+    xfree(section_suffix);
+    xfree(_line);
     return ret;
 }
 
 static char *
-get_server_socket_path(void)
-{
+get_server_socket_path(void) {
     const char *xdg_runtime = getenv("XDG_RUNTIME_DIR");
     if (xdg_runtime == NULL)
         return xstrdup("/tmp/foot.sock");
@@ -3286,16 +3192,14 @@ get_server_socket_path(void)
 }
 
 static config_modifier_list_t
-m(const char *text)
-{
+m(const char *text) {
     config_modifier_list_t ret = tll_init();
     parse_modifiers(text, strlen(text), &ret);
     return ret;
 }
 
 static void
-add_default_key_bindings(struct config *conf)
-{
+add_default_key_bindings(struct config *conf) {
     const struct config_key_binding bindings[] = {
         {BIND_ACTION_SCROLLBACK_UP_PAGE, m(XKB_MOD_NAME_SHIFT), {{XKB_KEY_Prior}}},
         {BIND_ACTION_SCROLLBACK_UP_PAGE, m(XKB_MOD_NAME_SHIFT), {{XKB_KEY_KP_Prior}}},
@@ -3325,10 +3229,8 @@ add_default_key_bindings(struct config *conf)
     conf->bindings.key.arr = xmemdup(bindings, sizeof(bindings));
 }
 
-
 static void
-add_default_search_bindings(struct config *conf)
-{
+add_default_search_bindings(struct config *conf) {
     const struct config_key_binding bindings[] = {
         {BIND_ACTION_SEARCH_SCROLLBACK_UP_PAGE, m(XKB_MOD_NAME_SHIFT), {{XKB_KEY_Prior}}},
         {BIND_ACTION_SEARCH_SCROLLBACK_UP_PAGE, m(XKB_MOD_NAME_SHIFT), {{XKB_KEY_KP_Prior}}},
@@ -3381,8 +3283,7 @@ add_default_search_bindings(struct config *conf)
 }
 
 static void
-add_default_url_bindings(struct config *conf)
-{
+add_default_url_bindings(struct config *conf) {
     const struct config_key_binding bindings[] = {
         {BIND_ACTION_URL_CANCEL, m(XKB_MOD_NAME_CTRL), {{XKB_KEY_c}}},
         {BIND_ACTION_URL_CANCEL, m(XKB_MOD_NAME_CTRL), {{XKB_KEY_g}}},
@@ -3396,8 +3297,7 @@ add_default_url_bindings(struct config *conf)
 }
 
 static void
-add_default_mouse_bindings(struct config *conf)
-{
+add_default_mouse_bindings(struct config *conf) {
     const struct config_key_binding bindings[] = {
         {BIND_ACTION_SCROLLBACK_UP_MOUSE, m("none"), {.m = {BTN_WHEEL_BACK, 1}}},
         {BIND_ACTION_SCROLLBACK_DOWN_MOUSE, m("none"), {.m = {BTN_WHEEL_FORWARD, 1}}},
@@ -3420,8 +3320,7 @@ add_default_mouse_bindings(struct config *conf)
 
 static void NOINLINE
 config_font_list_clone(struct config_font_list *dst,
-                       const struct config_font_list *src)
-{
+                       const struct config_font_list *src) {
     dst->count = src->count;
     dst->arr = xmalloc(dst->count * sizeof(dst->arr[0]));
 
@@ -3432,16 +3331,14 @@ config_font_list_clone(struct config_font_list *dst,
     }
 }
 
-bool
-config_load(struct config *conf, const char *conf_path,
-            user_notifications_t *initial_user_notifications,
-            config_override_t *overrides, bool errors_are_fatal,
-            bool as_server)
-{
+bool config_load(struct config *conf, const char *conf_path,
+                 user_notifications_t *initial_user_notifications,
+                 config_override_t *overrides, bool errors_are_fatal,
+                 bool as_server) {
     bool ret = true;
     enum fcft_capabilities fcft_caps = fcft_capabilities();
 
-    *conf = (struct config) {
+    *conf = (struct config){
         .term = xstrdup(FOOT_DEFAULT_TERM),
         .shell = get_shell(),
         .title = xstrdup("foot"),
@@ -3459,7 +3356,7 @@ config_load(struct config *conf, const char *conf_path,
         .resize_by_cells = true,
         .resize_keep_grid = true,
         .resize_delay_ms = 100,
-        .dim = { .amount = 1.5 },
+        .dim = {.amount = 1.5},
         .bold_in_bright = {
             .enabled = false,
             .palette_based = false,
@@ -3515,8 +3412,8 @@ config_load(struct config *conf, const char *conf_path,
             .alpha = 0xffff,
             .alpha_mode = ALPHA_MODE_DEFAULT,
             .dim_blend_towards = DIM_BLEND_TOWARDS_BLACK,
-            .selection_fg = 0x80000000,  /* Use default bg */
-            .selection_bg = 0x80000000,  /* Use default fg */
+            .selection_fg = 0x80000000, /* Use default bg */
+            .selection_bg = 0x80000000, /* Use default fg */
             .cursor = {
                 .text = 0,
                 .cursor = 0,
@@ -3579,8 +3476,8 @@ config_load(struct config *conf, const char *conf_path,
             .grapheme_shaping = fcft_caps & FCFT_CAPABILITY_GRAPHEME_SHAPING,
 #endif
             .grapheme_width_method = GRAPHEME_WIDTH_DOUBLE,
-            .delayed_render_lower_ns = 500000,         /* 0.5ms */
-            .delayed_render_upper_ns = 16666666 / 2,   /* half a frame period (60Hz) */
+            .delayed_render_lower_ns = 500000,       /* 0.5ms */
+            .delayed_render_upper_ns = 16666666 / 2, /* half a frame period (60Hz) */
             .max_shm_pool_size = 512 * 1024 * 1024,
             .render_timer = RENDER_TIMER_NONE,
             .damage_whole_window = false,
@@ -3599,10 +3496,7 @@ config_load(struct config *conf, const char *conf_path,
 
         .env_vars = tll_init(),
 #if defined(UTMP_DEFAULT_HELPER_PATH)
-        .utmp_helper_path = ((strlen(UTMP_DEFAULT_HELPER_PATH) > 0 &&
-                              access(UTMP_DEFAULT_HELPER_PATH, X_OK) == 0)
-                             ? xstrdup(UTMP_DEFAULT_HELPER_PATH)
-                             : NULL),
+        .utmp_helper_path = ((strlen(UTMP_DEFAULT_HELPER_PATH) > 0 && access(UTMP_DEFAULT_HELPER_PATH, X_OK) == 0) ? xstrdup(UTMP_DEFAULT_HELPER_PATH) : NULL),
 #endif
         .notifications = tll_init(),
     };
@@ -3621,46 +3515,46 @@ config_load(struct config *conf, const char *conf_path,
     tokenize_cmdline("xdg-open ${url}", &conf->url.launch.argv.args);
 
     {
-    const char *url_regex_string =
-        "("
+        const char *url_regex_string =
             "("
-                "(https?://|mailto:|ftp://|file:|ssh:|ssh://|git://|tel:|magnet:|ipfs://|ipns://|gemini://|gopher://|news:)"
-                "|"
-                "www\\."
+            "("
+            "(https?://|mailto:|ftp://|file:|ssh:|ssh://|git://|tel:|magnet:|ipfs://|ipns://|gemini://|gopher://|news:)"
+            "|"
+            "www\\."
             ")"
             "("
-                /* Safe + reserved + some unsafe characters parenthesis and double quotes omitted (we only allow them when balanced) */
-                "[0-9a-zA-Z:/?#@!$&*+,;=.~_%^\\-]+"
-                "|"
-                 /* Balanced "(...)". Content is same as above, plus all _other_ characters we require to be balanced */
-                "\\([]\\[\"0-9a-zA-Z:/?#@!$&'*+,;=.~_%^\\-]*\\)"
-                "|"
-                 /* Balanced "[...]". Content is same as above, plus all _other_ characters we require to be balanced */
-                "\\[[\\(\\)\"0-9a-zA-Z:/?#@!$&'*+,;=.~_%^\\-]*\\]"
-                "|"
-                 /* Balanced '"..."'. Content is same as above, plus all _other_ characters we require to be balanced */
-                "\"[]\\[\\(\\)0-9a-zA-Z:/?#@!$&'*+,;=.~_%^\\-]*\""
-                "|"
-                 /* Balanced "'...'". Content is same as above, plus all _other_ characters we require to be balanced */
-                "'[]\\[\\(\\)0-9a-zA-Z:/?#@!$&*+,;=.~_%^\\-]*'"
+            /* Safe + reserved + some unsafe characters parenthesis and double quotes omitted (we only allow them when balanced) */
+            "[0-9a-zA-Z:/?#@!$&*+,;=.~_%^\\-]+"
+            "|"
+            /* Balanced "(...)". Content is same as above, plus all _other_ characters we require to be balanced */
+            "\\([]\\[\"0-9a-zA-Z:/?#@!$&'*+,;=.~_%^\\-]*\\)"
+            "|"
+            /* Balanced "[...]". Content is same as above, plus all _other_ characters we require to be balanced */
+            "\\[[\\(\\)\"0-9a-zA-Z:/?#@!$&'*+,;=.~_%^\\-]*\\]"
+            "|"
+            /* Balanced '"..."'. Content is same as above, plus all _other_ characters we require to be balanced */
+            "\"[]\\[\\(\\)0-9a-zA-Z:/?#@!$&'*+,;=.~_%^\\-]*\""
+            "|"
+            /* Balanced "'...'". Content is same as above, plus all _other_ characters we require to be balanced */
+            "'[]\\[\\(\\)0-9a-zA-Z:/?#@!$&*+,;=.~_%^\\-]*'"
             ")+"
             "("
-                /* Same as above, except :?!,;. are excluded */
-                "[0-9a-zA-Z/#@$&*+=~_%^\\-]"
-                "|"
-                 /* Balanced "(...)". Content is same as above, plus all _other_ characters we require to be balanced */
-                "\\([]\\[\"0-9a-zA-Z:/?#@!$&'*+,;=.~_%^\\-]*\\)"
-                "|"
-                 /* Balanced "[...]". Content is same as above, plus all _other_ characters we require to be balanced */
-                "\\[[\\(\\)\"0-9a-zA-Z:/?#@!$&'*+,;=.~_%^\\-]*\\]"
-                "|"
-                 /* Balanced '"..."'. Content is same as above, plus all _other_ characters we require to be balanced */
-                "\"[]\\[\\(\\)0-9a-zA-Z:/?#@!$&'*+,;=.~_%^\\-]*\""
-                "|"
-                 /* Balanced "'...'". Content is same as above, plus all _other_ characters we require to be balanced */
-                "'[]\\[\\(\\)0-9a-zA-Z:/?#@!$&*+,;=.~_%^\\-]*'"
+            /* Same as above, except :?!,;. are excluded */
+            "[0-9a-zA-Z/#@$&*+=~_%^\\-]"
+            "|"
+            /* Balanced "(...)". Content is same as above, plus all _other_ characters we require to be balanced */
+            "\\([]\\[\"0-9a-zA-Z:/?#@!$&'*+,;=.~_%^\\-]*\\)"
+            "|"
+            /* Balanced "[...]". Content is same as above, plus all _other_ characters we require to be balanced */
+            "\\[[\\(\\)\"0-9a-zA-Z:/?#@!$&'*+,;=.~_%^\\-]*\\]"
+            "|"
+            /* Balanced '"..."'. Content is same as above, plus all _other_ characters we require to be balanced */
+            "\"[]\\[\\(\\)0-9a-zA-Z:/?#@!$&'*+,;=.~_%^\\-]*\""
+            "|"
+            /* Balanced "'...'". Content is same as above, plus all _other_ characters we require to be balanced */
+            "'[]\\[\\(\\)0-9a-zA-Z:/?#@!$&*+,;=.~_%^\\-]*'"
             ")"
-        ")";
+            ")";
 
         int r = regcomp(&conf->url.preg, url_regex_string, REG_EXTENDED);
         xassert(r == 0);
@@ -3739,17 +3633,15 @@ config_load(struct config *conf, const char *conf_path,
         xassert(conf->bindings.url.arr[i].action != BIND_ACTION_URL_NONE);
 #endif
 
-    free(conf_file.path);
+    xfree(conf_file.path);
     if (conf_file.fd >= 0)
         close(conf_file.fd);
 
     return ret;
 }
 
-bool
-config_override_apply(struct config *conf, config_override_t *overrides,
-                      bool errors_are_fatal)
-{
+bool config_override_apply(struct config *conf, config_override_t *overrides,
+                           bool errors_are_fatal) {
     char *section_name = NULL;
 
     struct context context = {
@@ -3763,8 +3655,7 @@ config_override_apply(struct config *conf, config_override_t *overrides,
     tll_foreach(*overrides, it) {
         context.lineno++;
 
-        if (!parse_key_value(it->item, &section_name, &context.key, &context.value))
-        {
+        if (!parse_key_value(it->item, &section_name, &context.key, &context.value)) {
             LOG_CONTEXTUAL_ERR("syntax error: key/value pair has no %s",
                                context.key == NULL ? "key" : "value");
             if (errors_are_fatal)
@@ -3805,25 +3696,23 @@ config_override_apply(struct config *conf, config_override_t *overrides,
     conf->csd.border_width = max(
         min_csd_border_width, conf->csd.border_width_visible);
 
-    return
-        resolve_key_binding_collisions(
-            conf, section_info[SECTION_KEY_BINDINGS].name,
-            binding_action_map, &conf->bindings.key, KEY_BINDING) &&
-        resolve_key_binding_collisions(
-            conf, section_info[SECTION_SEARCH_BINDINGS].name,
-            search_binding_action_map, &conf->bindings.search, KEY_BINDING) &&
-        resolve_key_binding_collisions(
-            conf, section_info[SECTION_URL_BINDINGS].name,
-            url_binding_action_map, &conf->bindings.url, KEY_BINDING) &&
-        resolve_key_binding_collisions(
-            conf, section_info[SECTION_MOUSE_BINDINGS].name,
-            binding_action_map, &conf->bindings.mouse, MOUSE_BINDING);
+    return resolve_key_binding_collisions(
+               conf, section_info[SECTION_KEY_BINDINGS].name,
+               binding_action_map, &conf->bindings.key, KEY_BINDING) &&
+           resolve_key_binding_collisions(
+               conf, section_info[SECTION_SEARCH_BINDINGS].name,
+               search_binding_action_map, &conf->bindings.search, KEY_BINDING) &&
+           resolve_key_binding_collisions(
+               conf, section_info[SECTION_URL_BINDINGS].name,
+               url_binding_action_map, &conf->bindings.url, KEY_BINDING) &&
+           resolve_key_binding_collisions(
+               conf, section_info[SECTION_MOUSE_BINDINGS].name,
+               binding_action_map, &conf->bindings.mouse, MOUSE_BINDING);
 }
 
 static void NOINLINE
 key_binding_list_clone(struct config_key_binding_list *dst,
-                       const struct config_key_binding_list *src)
-{
+                       const struct config_key_binding_list *src) {
     struct argv *last_master_argv = NULL;
     uint8_t *last_master_text_data = NULL;
     size_t last_master_text_len = 0;
@@ -3890,8 +3779,7 @@ key_binding_list_clone(struct config_key_binding_list *dst,
 }
 
 struct config *
-config_clone(const struct config *old)
-{
+config_clone(const struct config *old) {
     struct config *conf = xmalloc(sizeof(*conf));
     *conf = *old;
 
@@ -3927,7 +3815,6 @@ config_clone(const struct config *old)
         tll_push_back(conf->custom_regexes,
                       ((struct custom_regex){.name = xstrdup(old_regex->name),
                                              .regex = xstrdup(old_regex->regex)}));
-
 
         struct custom_regex *new_regex = &tll_back(conf->custom_regexes);
         regcomp(&new_regex->preg, new_regex->regex, REG_EXTENDED);
@@ -3967,8 +3854,7 @@ config_clone(const struct config *old)
     return conf;
 }
 
-UNITTEST
-{
+UNITTEST {
     struct config original;
     user_notifications_t nots = tll_init();
     config_override_t overrides = tll_init();
@@ -3978,13 +3864,13 @@ UNITTEST
     bool ret = config_load(&original, "/dev/null", &nots, &overrides, false, false);
     xassert(ret);
 
-    //struct config *clone = config_clone(&original);
-    //xassert(clone != NULL);
-    //xassert(clone != &original);
+    // struct config *clone = config_clone(&original);
+    // xassert(clone != NULL);
+    // xassert(clone != &original);
 
     config_free(&original);
-    //config_free(clone);
-    //free(clone);
+    // config_free(clone);
+    // free(clone);
 
     fcft_fini();
 
@@ -3992,35 +3878,33 @@ UNITTEST
     tll_free(nots);
 }
 
-void
-config_free(struct config *conf)
-{
-    free(conf->term);
-    free(conf->shell);
-    free(conf->title);
-    free(conf->app_id);
-    free(conf->toplevel_tag);
-    free(conf->word_delimiters);
+void config_free(struct config *conf) {
+    xfree(conf->term);
+    xfree(conf->shell);
+    xfree(conf->title);
+    xfree(conf->app_id);
+    xfree(conf->toplevel_tag);
+    xfree(conf->word_delimiters);
     spawn_template_free(&conf->bell.command);
-    free(conf->scrollback.indicator.text);
+    xfree(conf->scrollback.indicator.text);
     spawn_template_free(&conf->desktop_notifications.command);
     spawn_template_free(&conf->desktop_notifications.command_action_arg);
     spawn_template_free(&conf->desktop_notifications.close);
     for (size_t i = 0; i < ALEN(conf->fonts); i++)
         config_font_list_destroy(&conf->fonts[i]);
-    free(conf->server_socket_path);
+    xfree(conf->server_socket_path);
 
     config_font_list_destroy(&conf->csd.font);
 
-    free(conf->url.label_letters);
+    xfree(conf->url.label_letters);
     spawn_template_free(&conf->url.launch);
     regfree(&conf->url.preg);
-    free(conf->url.regex);
+    xfree(conf->url.regex);
 
     tll_foreach(conf->custom_regexes, it) {
         struct custom_regex *regex = &it->item;
-        free(regex->name);
-        free(regex->regex);
+        xfree(regex->name);
+        xfree(regex->regex);
         regfree(&regex->preg);
         spawn_template_free(&regex->launch);
         tll_remove(conf->custom_regexes, it);
@@ -4033,18 +3917,16 @@ config_free(struct config *conf)
     tll_free_and_free(conf->mouse.selection_override_modifiers, free);
 
     tll_foreach(conf->env_vars, it) {
-        free(it->item.name);
-        free(it->item.value);
+        xfree(it->item.name);
+        xfree(it->item.value);
         tll_remove(conf->env_vars, it);
     }
 
-    free(conf->utmp_helper_path);
+    xfree(conf->utmp_helper_path);
     user_notifications_free(&conf->notifications);
 }
 
-bool
-config_font_parse(const char *pattern, struct config_font *font)
-{
+bool config_font_parse(const char *pattern, struct config_font *font) {
     FcPattern *pat = FcNameParse((const FcChar8 *)pattern);
     if (pat == NULL)
         return false;
@@ -4070,8 +3952,7 @@ config_font_parse(const char *pattern, struct config_font *font)
         FcConfig *fc_conf = FcConfigCreate();
         FcPattern *pat_copy = FcPatternDuplicate(pat);
         if (pat_copy == NULL ||
-            !FcConfigSubstitute(fc_conf, pat_copy, FcMatchPattern))
-        {
+            !FcConfigSubstitute(fc_conf, pat_copy, FcMatchPattern)) {
             LOG_WARN("%s: failed to do config substitution", pattern);
         } else {
             have_pt_size = FcPatternGetDouble(pat_copy, FC_SIZE, 0, &pt_size);
@@ -4101,26 +3982,20 @@ config_font_parse(const char *pattern, struct config_font *font)
     *font = (struct config_font){
         .pattern = stripped_pattern,
         .pt_size = pt_size,
-        .px_size = px_size
-    };
+        .px_size = px_size};
     return true;
 }
 
-void
-config_font_list_destroy(struct config_font_list *font_list)
-{
+void config_font_list_destroy(struct config_font_list *font_list) {
     for (size_t i = 0; i < font_list->count; i++)
-        free(font_list->arr[i].pattern);
-    free(font_list->arr);
+        xfree(font_list->arr[i].pattern);
+    xfree(font_list->arr);
     font_list->count = 0;
     font_list->arr = NULL;
 }
 
-
-bool
-check_if_font_is_monospaced(const char *pattern,
-                            user_notifications_t *notifications)
-{
+bool check_if_font_is_monospaced(const char *pattern,
+                                 user_notifications_t *notifications) {
     struct fcft_font *f = fcft_from_name(
         1, (const char *[]){pattern}, ":size=8");
 
@@ -4141,8 +4016,8 @@ check_if_font_is_monospaced(const char *pattern,
 
         if (last_width >= 0 && g->advance.x != last_width) {
             const char *font_name = f->name != NULL
-                ? f->name
-                : pattern;
+                                        ? f->name
+                                        : pattern;
 
             LOG_WARN("%s: font does not appear to be monospace; "
                      "check your config, or disable this warning by "
